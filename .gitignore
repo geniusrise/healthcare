@@ -164,7 +164,7 @@ cython_debug/
 *.json
 
 package/
-daat/*
+data/*
 models/*
 graphs/*
 saved/*
