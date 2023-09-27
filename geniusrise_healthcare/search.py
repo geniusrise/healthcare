@@ -1,13 +1,12 @@
 import logging
-from typing import List, Set, Tuple, Optional, Union
+from typing import List, Set, Tuple, Union
 
-import faiss
 import networkx as nx
 import numpy as np
 
-
-from geniusrise_healthcare.util import generate_embeddings
+import faiss
 from geniusrise_healthcare.constants import SEMANTIC_TAGS
+from geniusrise_healthcare.util import generate_embeddings
 
 log = logging.getLogger(__name__)
 
@@ -180,7 +179,14 @@ def recursive_search(
     candidates = list(G.predecessors(node)) + list(G.successors(node)) if depth > 1 else list(G.predecessors(node))
     for neighbor in candidates:
         paths += recursive_search(
-            G, neighbor, semantic_types, stop_at_semantic_types, visited, depth + 1, max_depth, current_path
+            G,
+            neighbor,
+            semantic_types,
+            stop_at_semantic_types,
+            visited,
+            depth + 1,
+            max_depth,
+            current_path,
         )
 
     current_path.pop()

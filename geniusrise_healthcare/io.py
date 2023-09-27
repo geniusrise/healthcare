@@ -2,8 +2,9 @@ import logging
 import pickle
 from typing import Dict
 
-import faiss
 import networkx as nx
+
+import faiss
 
 log = logging.getLogger(__name__)
 

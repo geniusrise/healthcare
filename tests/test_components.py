@@ -1,21 +1,19 @@
 import pytest
+from transformers import AutoModel, AutoTokenizer
 
 from geniusrise_healthcare.io import (
-    load_networkx_graph,
-    load_faiss_index,
     load_concept_dict,
-)
-from geniusrise_healthcare.search import (
-    find_related_subgraphs,
+    load_faiss_index,
+    load_networkx_graph,
 )
 from geniusrise_healthcare.network_utils import (
-    find_largest_strongly_connected_component,
-    find_largest_weakly_connected_component,
     find_largest_attracting_component,
     find_largest_connected_component,
+    find_largest_strongly_connected_component,
+    find_largest_weakly_connected_component,
 )
+from geniusrise_healthcare.search import find_related_subgraphs
 from geniusrise_healthcare.util import draw_subgraph
-from transformers import AutoTokenizer, AutoModel
 
 
 @pytest.fixture(scope="module")
@@ -48,7 +46,11 @@ def test_find_largest_strongly_connected_component(loaded_data):
     )
     top_subgraph = find_largest_strongly_connected_component(top_subgraphs)
 
-    draw_subgraph(top_subgraph, concept_id_to_concept, f"graphs/strongly_connected_component-{' '.join(user_terms)}")
+    draw_subgraph(
+        top_subgraph,
+        concept_id_to_concept,
+        f"graphs/strongly_connected_component-{' '.join(user_terms)}",
+    )
     assert top_subgraph.number_of_nodes() > 0
     assert top_subgraph.number_of_edges() >= 0
 
@@ -74,7 +76,11 @@ def test_find_largest_weakly_connected_component(loaded_data):
     )
     top_subgraph = find_largest_weakly_connected_component(top_subgraphs)
 
-    draw_subgraph(top_subgraph, concept_id_to_concept, f"graphs/weakly_connected_component-{' '.join(user_terms)}")
+    draw_subgraph(
+        top_subgraph,
+        concept_id_to_concept,
+        f"graphs/weakly_connected_component-{' '.join(user_terms)}",
+    )
     assert top_subgraph.number_of_nodes() > 0
     assert top_subgraph.number_of_edges() > 0
 
@@ -100,7 +106,11 @@ def test_find_largest_attracting_component(loaded_data):
     )
     top_subgraph = find_largest_attracting_component(top_subgraphs)
 
-    draw_subgraph(top_subgraph, concept_id_to_concept, f"graphs/attracting_component-{' '.join(user_terms)}")
+    draw_subgraph(
+        top_subgraph,
+        concept_id_to_concept,
+        f"graphs/attracting_component-{' '.join(user_terms)}",
+    )
     assert top_subgraph.number_of_nodes() > 0
     assert top_subgraph.number_of_edges() >= 0
 
@@ -126,7 +136,11 @@ def test_find_largest_connected_component(loaded_data):
     )
     top_subgraph = find_largest_connected_component(top_subgraphs)
 
-    draw_subgraph(top_subgraph, concept_id_to_concept, f"graphs/connected_component-{' '.join(user_terms)}")
+    draw_subgraph(
+        top_subgraph,
+        concept_id_to_concept,
+        f"graphs/connected_component-{' '.join(user_terms)}",
+    )
     assert top_subgraph.number_of_nodes() > 0
     assert top_subgraph.number_of_edges() > 0
 

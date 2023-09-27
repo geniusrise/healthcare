@@ -1,18 +1,18 @@
+import networkx as nx
 import pytest
+from transformers import AutoModel, AutoTokenizer
 
 from geniusrise_healthcare.io import (
-    load_networkx_graph,
-    load_faiss_index,
     load_concept_dict,
+    load_faiss_index,
+    load_networkx_graph,
 )
 from geniusrise_healthcare.search import (
     find_adjacent_nodes,
-    find_semantically_similar_nodes,
     find_related_subgraphs,
+    find_semantically_similar_nodes,
 )
 from geniusrise_healthcare.util import draw_subgraph
-from transformers import AutoTokenizer, AutoModel
-import networkx as nx
 
 
 @pytest.fixture(scope="module")

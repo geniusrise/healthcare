@@ -1,16 +1,15 @@
 import csv
 import logging
 import os
-import pickle
-import zipfile
-from typing import Dict, Tuple, List
 import sys
+import zipfile
+from typing import Dict, List, Tuple
 
-import torch
-import faiss
 import networkx as nx
 import numpy as np
+import torch
 from tqdm import tqdm
+
 
 log = logging.getLogger(__name__)
 
@@ -83,8 +82,8 @@ def load_snomed_into_networkx(
         num_lines = sum(1 for _ in f)
 
     log.info(f"Loading concepts from {concept_file}")
-    with open(concept_file, "r") as f:
-        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)
+    with open(concept_file, "r") as f:  # type: ignore
+        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)  # type: ignore
         next(reader)  # Skip header
         for row in tqdm(reader, total=num_lines):
             try:
@@ -106,9 +105,12 @@ def load_snomed_into_networkx(
                     # # Generate embeddings
                     if not skip_embedding and model and tokenizer and faiss_index:
                         model.to(device)
-                        inputs = tokenizer(fsn_without_tag, return_tensors="pt", padding=True, truncation=True).to(
-                            device
-                        )
+                        inputs = tokenizer(
+                            fsn_without_tag,
+                            return_tensors="pt",
+                            padding=True,
+                            truncation=True,
+                        ).to(device)
                         outputs = model(**inputs)
                         embeddings = outputs.last_hidden_state.mean(dim=1).detach()
 
@@ -119,7 +121,7 @@ def load_snomed_into_networkx(
 
                         # Process batch if it reaches the batch_size
                         if batch_count >= batch_size:
-                            log.info(f"Flushing into faiss")
+                            log.info("Flushing into faiss")
                             batch_embeddings = [
                                 x.cpu().numpy() if type(x) is not np.ndarray else x for x in batch_embeddings
                             ]
@@ -140,8 +142,8 @@ def load_snomed_into_networkx(
         num_lines = sum(1 for _ in f)
 
     log.info(f"Loading relationships from {relationship_file}")
-    with open(relationship_file, "r") as f:
-        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)
+    with open(relationship_file, "r") as f:  # type: ignore
+        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)  # type: ignore
         next(reader)  # Skip header
         for row in tqdm(reader, total=num_lines):
             try:

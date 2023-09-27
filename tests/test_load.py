@@ -1,19 +1,15 @@
+# type: ignore
 import os
-import tempfile
-import zipfile
 import shutil
-from geniusrise_healthcare.load import (
-    unzip_snomed_ct,
-    load_snomed_into_networkx,
-)
-from geniusrise_healthcare.io import (
-    save_networkx_graph,
-    save_faiss_index,
-    save_concept_dict,
-)
-from transformers import AutoTokenizer, AutoModel
-import faiss
+import tempfile
+
 import networkx as nx
+
+from geniusrise_healthcare.io import (
+    save_concept_dict,
+    save_networkx_graph,
+)
+from geniusrise_healthcare.load import load_snomed_into_networkx, unzip_snomed_ct
 
 
 def test_unzip_snomed_ct():
@@ -31,7 +27,8 @@ def test_unzip_snomed_ct():
         assert os.path.exists(os.path.join(extract_path, "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z"))
         assert os.path.exists(
             os.path.join(
-                extract_path, "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z/release_package_information.json"
+                extract_path,
+                "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z/release_package_information.json",
             )
         )
 
@@ -47,7 +44,8 @@ def test_load_snomed_into_networkx_no_index():
         for file in snomed_files:
             shutil.copy(
                 os.path.join(
-                    "./data/snomed/SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z/Snapshot/Terminology", file
+                    "./data/snomed/SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z/Snapshot/Terminology",
+                    file,
                 ),
                 os.path.join(tmpdir, file),
             )

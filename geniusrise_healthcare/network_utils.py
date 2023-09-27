@@ -1,5 +1,6 @@
-import networkx as nx
 import logging
+
+import networkx as nx
 
 log = logging.getLogger(__name__)
 
