@@ -16,24 +16,24 @@ import faiss
 import networkx as nx
 
 
-# def test_unzip_snomed_ct():
-#     # Create a temporary directory to hold the zip and extracted files
-#     with tempfile.TemporaryDirectory() as tmpdir:
-#         zip_path = "./data/SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z.zip"
-#         extract_path = "./data/snomed"
+def test_unzip_snomed_ct():
+    # Create a temporary directory to hold the zip and extracted files
+    with tempfile.TemporaryDirectory() as tmpdir:
+        zip_path = "./data/SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z.zip"
+        extract_path = "./data/snomed"
 
-#         shutil.rmtree(extract_path, ignore_errors=True)
+        shutil.rmtree(extract_path, ignore_errors=True)
 
-#         # Run the unzip_snomed_ct function
-#         unzip_snomed_ct(zip_path, extract_path)
+        # Run the unzip_snomed_ct function
+        unzip_snomed_ct(zip_path, extract_path)
 
-#         # Check if the files were correctly extracted
-#         assert os.path.exists(os.path.join(extract_path, "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z"))
-#         assert os.path.exists(
-#             os.path.join(
-#                 extract_path, "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z/release_package_information.json"
-#             )
-#         )
+        # Check if the files were correctly extracted
+        assert os.path.exists(os.path.join(extract_path, "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z"))
+        assert os.path.exists(
+            os.path.join(
+                extract_path, "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z/release_package_information.json"
+            )
+        )
 
 
 def test_load_snomed_into_networkx_no_index():

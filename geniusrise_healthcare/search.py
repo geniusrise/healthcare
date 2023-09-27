@@ -1,5 +1,5 @@
 import logging
-from typing import List, Set, Tuple, Optional
+from typing import List, Set, Tuple, Optional, Union
 
 import faiss
 import networkx as nx
@@ -138,26 +138,28 @@ def find_global_important_nodes(G: nx.DiGraph, top_n: int = 10) -> List[int]:
 def recursive_search(
     G: nx.DiGraph,
     node: int,
-    semantic_type: Optional[str],
+    semantic_types: Union[None, str, List[str]],
+    stop_at_semantic_types: Union[None, str, List[str]],
     visited: Set[int],
     depth: int,
     max_depth: int,
     current_path: List[int],
 ) -> List[List[int]]:
     """
-    Recursively search the graph starting from a node, collecting all paths leading to nodes of a certain semantic type.
+    Recursively search the graph starting from a node, collecting all paths leading to nodes of certain semantic types.
 
     Parameters:
     - G (nx.DiGraph): The NetworkX graph.
     - node (int): The starting node.
-    - semantic_type (str): The semantic type to collect.
+    - semantic_types (Union[None, str, List[str]]): The semantic types to collect.
+    - stop_at_semantic_types (Union[None, str, List[str]]): The semantic types where the search should stop.
     - visited (Set[int]): Set of visited nodes.
     - depth (int): Current depth of recursion.
     - max_depth (int): Maximum depth allowed for recursion.
     - current_path (List[int]): The current path from the start node.
 
     Returns:
-    List[List[int]]: A list of paths leading to nodes of the specified semantic type.
+    List[List[int]]: A list of paths leading to nodes of the specified semantic types.
     """
     if node in visited or depth > max_depth:
         return []
@@ -166,11 +168,20 @@ def recursive_search(
     current_path.append(node)
     paths = []
 
-    if not semantic_type or G.nodes[node].get("tag") == semantic_type:
+    node_tag = G.nodes[node].get("tag")
+    if node_tag in (stop_at_semantic_types if isinstance(stop_at_semantic_types, list) else [stop_at_semantic_types]):  # type: ignore
+        paths.append(current_path.copy())
+        current_path.pop()
+        return paths
+
+    if not semantic_types or node_tag in (semantic_types if isinstance(semantic_types, list) else [semantic_types]):
         paths.append(current_path.copy())
 
-    for neighbor in list(G.predecessors(node)) + list(G.successors(node)):
-        paths += recursive_search(G, neighbor, semantic_type, visited, depth + 1, max_depth, current_path)
+    candidates = list(G.predecessors(node)) + list(G.successors(node)) if depth > 1 else list(G.predecessors(node))
+    for neighbor in candidates:
+        paths += recursive_search(
+            G, neighbor, semantic_types, stop_at_semantic_types, visited, depth + 1, max_depth, current_path
+        )
 
     current_path.pop()
     return paths
@@ -184,7 +195,8 @@ def find_related_subgraphs(
     tokenizer,
     concept_id_to_concept: dict,
     cutoff_score: float = 0.1,
-    semantic_type: Optional[str] = None,
+    semantic_types: Union[None, str, List[str]] = None,
+    stop_at_semantic_types: Union[None, str, List[str]] = None,
     max_depth: int = 3,
 ) -> nx.Graph:
     """
@@ -199,11 +211,13 @@ def find_related_subgraphs(
     - max_depth (int): Maximum depth for recursive search.
 
     Returns:
-    nx.Graph: A subgraph containing nodes of the specified semantic type.
+    nx.Graph: A subgraph containing nodes of the specified semantic types.
     """
     semantically_similar_nodes = []
-    if semantic_type and semantic_type not in SEMANTIC_TAGS:
-        raise ValueError(f"Semantic type {semantic_type} not supported")
+    if semantic_types and not all(
+        st in SEMANTIC_TAGS for st in (semantic_types if isinstance(semantic_types, list) else [semantic_types])
+    ):
+        raise ValueError(f"Semantic types {semantic_types} not supported")
 
     # query expansion: find semantically similar terms to user's query terms
     for term in user_terms:
@@ -220,7 +234,28 @@ def find_related_subgraphs(
     # Start search from each semantically similar node
     for node in semantically_similar_nodes:
         log.info(f"Processing node {concept_id_to_concept.get(str(node))}")
-        result_paths += recursive_search(G, node, semantic_type, visited, depth=0, max_depth=3, current_path=[])
+        if stop_at_semantic_types:
+            result_paths += recursive_search(
+                G,
+                node,
+                semantic_types=semantic_types,
+                stop_at_semantic_types=stop_at_semantic_types,
+                visited=visited,
+                depth=0,
+                max_depth=3,
+                current_path=[],
+            )
+        else:
+            result_paths += recursive_search(
+                G,
+                node,
+                semantic_types=semantic_types,
+                stop_at_semantic_types=semantic_types,
+                visited=visited,
+                depth=0,
+                max_depth=3,
+                current_path=[],
+            )
 
     # Initialize a new directed graph to store the result paths
     result_graph = nx.DiGraph()

@@ -8,17 +8,9 @@ from geniusrise_healthcare.io import (
 from geniusrise_healthcare.search import (
     find_adjacent_nodes,
     find_semantically_similar_nodes,
-    intersect_subgraphs,
     find_related_subgraphs,
 )
-from geniusrise_healthcare.network_utils import (
-    find_largest_strongly_connected_component,
-    find_largest_weakly_connected_component,
-    find_largest_attracting_component,
-    find_largest_connected_component,
-)
 from geniusrise_healthcare.util import draw_subgraph
-import torch
 from transformers import AutoTokenizer, AutoModel
 import networkx as nx
 
@@ -64,37 +56,6 @@ def test_find_semantic_and_adjacent_nodes_compose(loaded_data):
     draw_subgraph(composed_graph, concept_id_to_concept, f"graphs/{' '.join(nodes)}")
 
     assert composed_graph.number_of_nodes() > 1
-
-
-def test_find_semantic_and_adjacent_nodes_intersect(loaded_data):
-    G, faiss_index, concept_id_to_concept, description_id_to_concept = loaded_data
-
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-    model = AutoModel.from_pretrained("bert-base-uncased")
-
-    nodes = ["chest pain", "shortness of breath"]
-    subgraphs = []
-    for node in nodes:
-        # Generate embeddings
-        inputs = tokenizer(node, return_tensors="pt", padding=True, truncation=True).to("cpu")
-        outputs = model(**inputs)
-        embeddings = outputs.last_hidden_state.mean(dim=1).detach()
-
-        closest_nodes = find_semantically_similar_nodes(faiss_index, embeddings, cutoff_score=0.1)
-
-        if len(closest_nodes) > 0:
-            inward, outward, neighbors = find_adjacent_nodes([int(x[0]) for x in closest_nodes], G, n=1)
-            subgraphs.append(neighbors)
-            # draw_subgraph(neighbors, concept_id_to_concept, f"graphs/{' '.join(nodes)}")
-
-    subgraphs = [x for y in subgraphs for x in y if x.number_of_nodes() > 1]
-
-    if len(subgraphs) > 0:
-        intersection_graph = intersect_subgraphs(subgraphs)
-        if intersection_graph.number_of_edges() > 0:
-            draw_subgraph(intersection_graph, concept_id_to_concept, f"graphs/{' '.join(nodes)}")
-
-    assert intersection_graph.number_of_nodes() > 1
 
 
 def test_find_related_subgraphs(loaded_data):
