@@ -20,7 +20,7 @@
 # )
 # from .ner import annotate_text_with_snomed
 # from .search import (
-#     find_closest_nodes,
+#     find_semantically_similar_nodes,
 #     find_semantic_and_adjacent_nodes,
 #     load_faiss_index,
 #     load_networkx_graph,
@@ -104,7 +104,7 @@
 #         for doc_id, doc_data in annotations.items():
 #             for annotation in doc_data["annotations"]:
 #                 cui: str = annotation["cui"]  # type: ignore
-#                 closest_nodes = find_closest_nodes(self.faiss_index, self.G, cui, cutoff_score)
+#                 closest_nodes = find_semantically_similar_nodes(self.faiss_index, self.G, cui, cutoff_score)
 #                 semantic_and_adjacent, semantic_and_not_adjacent = find_semantic_and_adjacent_nodes(
 #                     cui, [node[0] for node in closest_nodes], self.G, n_hops
 #                 )

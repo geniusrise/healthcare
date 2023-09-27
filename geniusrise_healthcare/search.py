@@ -1,12 +1,13 @@
 import logging
-import pickle
-from typing import Dict, List, Set, Tuple
-from collections import Counter
+from typing import List, Set, Tuple, Optional
 
 import faiss
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
+
+
+from geniusrise_healthcare.util import generate_embeddings
+from geniusrise_healthcare.constants import SEMANTIC_TAGS
 
 log = logging.getLogger(__name__)
 
@@ -40,14 +41,13 @@ def find_adjacent_nodes(source_nodes: List[int], G: nx.DiGraph, n: int, undirect
         outward.append(_outward)
 
         subgraph = nx.ego_graph(G, source_node, radius=n, undirected=undirected, center=True)
-        _neighbors = subgraph
-        neighbors.append(_neighbors)
+        neighbors.append(subgraph)
 
     return inward, outward, neighbors
 
 
-def find_closest_nodes(
-    faiss_index: faiss.IndexIDMap, G: nx.DiGraph, node: np.ndarray, cutoff_score: float  # type: ignore
+def find_semantically_similar_nodes(
+    faiss_index: faiss.IndexIDMap, embedding: np.ndarray, cutoff_score: float  # type: ignore
 ) -> List[Tuple[str, float]]:
     """
     Finds the closest nodes to a given node in a NetworkX graph using a FAISS index.
@@ -62,7 +62,7 @@ def find_closest_nodes(
     List[Tuple[str, float]]: A list of tuples containing the closest node IDs and their similarity scores.
     """
     # Search for the closest nodes in the FAISS index
-    distances, closest_node_ids = faiss_index.search(node, faiss_index.ntotal)
+    distances, closest_node_ids = faiss_index.search(embedding, faiss_index.ntotal)
 
     # Filter nodes based on the cutoff score and whether they exist in the graph
     closest_nodes = []
@@ -104,42 +104,6 @@ def intersect_subgraphs(subgraphs: List[nx.DiGraph]) -> nx.DiGraph:
     return intersection_graph
 
 
-def print_dfs_chain(G, node, visited, concept_id_to_concept, chain):
-    visited.add(node)
-    chain.append(concept_id_to_concept.get(str(node), node))
-
-    for neighbor in G.neighbors(node):
-        if neighbor not in visited:
-            edge_data = G.get_edge_data(node, neighbor)
-            print_dfs_chain(G, neighbor, visited, concept_id_to_concept, chain)
-            chain_str = " --> ".join(chain)
-            print(
-                f"Chain: {chain_str} --({concept_id_to_concept[edge_data['relationship_type']]})---> {concept_id_to_concept.get(str(neighbor), neighbor)}"
-            )
-            chain.pop()
-
-
-def draw_subgraph(subgraph, concept_id_to_concept, save_location):
-    plt.figure(figsize=(20, 20), dpi=300)
-    labels = {node: concept_id_to_concept.get(str(node), str(node)) for node in subgraph.nodes()}
-    pos = nx.spring_layout(subgraph, k=0.6, iterations=50)
-    nx.draw(
-        subgraph,
-        pos,
-        labels=labels,
-        with_labels=True,
-        arrows=True,
-        node_size=400,
-        node_shape="s",
-        node_color="lightblue",
-        font_size=8.0,
-        font_color="black",
-        edge_color="coral",
-        style="dashed",
-    )
-    plt.savefig(f"{save_location}.png", bbox_inches="tight", pad_inches=0.1)
-
-
 def find_local_important_nodes(G: nx.DiGraph, node: int, n: int = 1) -> List[int]:
     """
     Finds important nodes in the local neighborhood of a given node in a NetworkX graph.
@@ -171,65 +135,58 @@ def find_global_important_nodes(G: nx.DiGraph, top_n: int = 10) -> List[int]:
     return sorted(pagerank, key=pagerank.get, reverse=True)[:top_n]
 
 
-def rank_nodes(
-    candidate_nodes: Set[int], G: nx.DiGraph, faiss_index: faiss.IndexIDMap, user_terms: List[str], model, tokenizer  # type: ignore
-) -> List[int]:
+def recursive_search(
+    G: nx.DiGraph,
+    node: int,
+    semantic_type: Optional[str],
+    visited: Set[int],
+    depth: int,
+    max_depth: int,
+    current_path: List[int],
+) -> List[List[int]]:
     """
-    Ranks candidate nodes based on local and global importance and semantic similarity to the user's query.
+    Recursively search the graph starting from a node, collecting all paths leading to nodes of a certain semantic type.
 
     Parameters:
-    - candidate_nodes (Set[int]): The set of candidate nodes.
     - G (nx.DiGraph): The NetworkX graph.
-    - faiss_index (faiss.IndexIDMap): The FAISS index.
-    - user_terms (List[str]): The user's query terms.
-    - model: The BERT model for generating embeddings.
-    - tokenizer: The tokenizer for the BERT model.
+    - node (int): The starting node.
+    - semantic_type (str): The semantic type to collect.
+    - visited (Set[int]): Set of visited nodes.
+    - depth (int): Current depth of recursion.
+    - max_depth (int): Maximum depth allowed for recursion.
+    - current_path (List[int]): The current path from the start node.
 
     Returns:
-    List[int]: A list of ranked nodes.
+    List[List[int]]: A list of paths leading to nodes of the specified semantic type.
     """
-    local_scores = Counter()  # type: ignore
-    global_scores = Counter()  # type: ignore
-    semantic_scores = Counter()  # type: ignore
+    if node in visited or depth > max_depth:
+        return []
 
-    global_important_nodes = find_global_important_nodes(G)
-    for node in candidate_nodes:
-        local_scores[node] = len(find_local_important_nodes(G, node))
-        global_scores[node] = 1 if node in global_important_nodes else 0
+    visited.add(node)
+    current_path.append(node)
+    paths = []
 
-        embeddings = generate_embeddings(str(node), model, tokenizer)
-        _, closest_nodes = find_closest_nodes(faiss_index, G, embeddings, cutoff_score=0.1)
-        semantic_scores[node] = sum(score for _, score in closest_nodes if node in candidate_nodes)  # type: ignore
+    if not semantic_type or G.nodes[node].get("tag") == semantic_type:
+        paths.append(current_path.copy())
 
-    # Combine the scores
-    combined_scores = Counter()  # type: ignore
-    for node in candidate_nodes:
-        combined_scores[node] = local_scores[node] + global_scores[node] + semantic_scores[node]
+    for neighbor in list(G.predecessors(node)) + list(G.successors(node)):
+        paths += recursive_search(G, neighbor, semantic_type, visited, depth + 1, max_depth, current_path)
 
-    return [node for node, _ in combined_scores.most_common()]
+    current_path.pop()
+    return paths
 
 
-def generate_embeddings(term: str, model, tokenizer) -> np.ndarray:
-    """
-    Generates embeddings for a given term using a BERT model.
-
-    Parameters:
-    - term (str): The term for which to generate the embeddings.
-    - model: The BERT model.
-    - tokenizer: The tokenizer for the BERT model.
-
-    Returns:
-    np.ndarray: The generated embeddings.
-    """
-    inputs = tokenizer(term, return_tensors="pt", padding=True, truncation=True).to("cpu")
-    outputs = model(**inputs)
-    embeddings = outputs.last_hidden_state.mean(dim=1).detach().numpy()
-    return embeddings
-
-
-def find_related_terms(
-    user_terms: List[str], G: nx.DiGraph, faiss_index: faiss.IndexIDMap, model, tokenizer  # type: ignore
-) -> List[int]:
+def find_related_subgraphs(
+    user_terms: List[str],
+    G: nx.DiGraph,
+    faiss_index: faiss.IndexIDMap,  # type: ignore
+    model,
+    tokenizer,
+    concept_id_to_concept: dict,
+    cutoff_score: float = 0.1,
+    semantic_type: Optional[str] = None,
+    max_depth: int = 3,
+) -> nx.Graph:
     """
     Finds a consistent set of related conditions, diseases, etc., from the SNOMED graph based on the user's query.
 
@@ -237,74 +194,41 @@ def find_related_terms(
     - user_terms (List[str]): The user's query terms.
     - G (nx.DiGraph): The NetworkX graph.
     - faiss_index (faiss.IndexIDMap): The FAISS index.
-    - model: The BERT model for generating embeddings.
-    - tokenizer: The tokenizer for the BERT model.
+    - model: The model for generating embeddings.
+    - tokenizer: The tokenizer for the model.
+    - max_depth (int): Maximum depth for recursive search.
 
     Returns:
-    List[int]: A list of related nodes.
+    nx.Graph: A subgraph containing nodes of the specified semantic type.
     """
     semantically_similar_nodes = []
+    if semantic_type and semantic_type not in SEMANTIC_TAGS:
+        raise ValueError(f"Semantic type {semantic_type} not supported")
+
+    # query expansion: find semantically similar terms to user's query terms
     for term in user_terms:
         embeddings = generate_embeddings(term, model, tokenizer)
-        similar_nodes = find_closest_nodes(faiss_index, G, embeddings, cutoff_score=0.1)
+        similar_nodes = find_semantically_similar_nodes(faiss_index, embeddings, cutoff_score=cutoff_score)
         semantically_similar_nodes.extend([int(node) for node, _ in similar_nodes])
 
-    local_important_nodes = []
+    log.info(f"Semantically similar nodes: {semantically_similar_nodes}")
+
+    # Initialize visited set and result paths
+    visited = set()  # type: ignore
+    result_paths = []
+
+    # Start search from each semantically similar node
     for node in semantically_similar_nodes:
-        local_important_nodes.extend(find_local_important_nodes(G, node))
+        log.info(f"Processing node {concept_id_to_concept.get(str(node))}")
+        result_paths += recursive_search(G, node, semantic_type, visited, depth=0, max_depth=3, current_path=[])
 
-    global_important_nodes = find_global_important_nodes(G)
+    # Initialize a new directed graph to store the result paths
+    result_graph = nx.DiGraph()
 
-    candidate_nodes = set(semantically_similar_nodes) & set(local_important_nodes) & set(global_important_nodes)
-    ranked_nodes = rank_nodes(candidate_nodes, G, faiss_index, user_terms, model, tokenizer)
+    # Add the edges from each path to the result graph
+    for path in result_paths:
+        for i in range(len(path) - 1):
+            result_graph.add_edge(path[i], path[i + 1])
 
-    return ranked_nodes
-
-
-def load_networkx_graph(file_path: str) -> nx.DiGraph:
-    """
-    Loads a NetworkX graph from a file.
-
-    Parameters:
-    - file_path (str): The file path from which to load the graph.
-
-    Returns:
-    nx.DiGraph: The loaded NetworkX graph.
-    """
-    log.info(f"Loading NetworkX graph from {file_path}")
-    with open(file_path, "rb") as f:
-        G = pickle.load(f)
-    log.debug(f"Loaded {G.number_of_nodes()} nodes and {G.number_of_edges()} edges into the graph.")
-    return G
-
-
-def load_faiss_index(file_path: str) -> faiss.IndexIDMap:  # type: ignore
-    """
-    Loads a FAISS index from a file.
-
-    Parameters:
-    - file_path (str): The file path from which to load the FAISS index.
-
-    Returns:
-    faiss.IndexIDMap: The loaded FAISS index.
-    """
-    log.info(f"Loading FAISS index from {file_path}")
-    faiss_index = faiss.read_index(file_path)  # type: ignore
-    log.debug(f"Loaded FAISS index with {faiss_index.ntotal} total vectors.")
-    return faiss_index
-
-
-def load_concept_dict(file_path: str) -> Dict[str, str]:
-    """
-    Loads the description_id_to_concept dictionary from a file.
-
-    Parameters:
-    - file_path (str): The file path from where the dictionary will be loaded.
-
-    Returns:
-    Dict[str, str]: The loaded description_id_to_concept dictionary.
-    """
-    log.info(f"Loading description_id_to_concept dictionary from {file_path}")
-    with open(file_path, "rb") as f:
-        description_id_to_concept = pickle.load(f)
-    return description_id_to_concept
+    log.info(f"Result graph has: {result_graph.number_of_nodes()} nodes and {result_graph.number_of_edges()} edges")
+    return result_graph

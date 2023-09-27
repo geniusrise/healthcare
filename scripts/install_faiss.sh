@@ -20,4 +20,4 @@ make -C build -j swigfaiss
 
 cd build/faiss/python && python setup.py install
 cd ../../..
-# sudo make -C build install
+sudo make -C build install
