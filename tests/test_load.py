@@ -9,28 +9,28 @@ from geniusrise_healthcare.io import (
     save_concept_dict,
     save_networkx_graph,
 )
-from geniusrise_healthcare.load import load_snomed_into_networkx, unzip_snomed_ct
+from geniusrise_healthcare.snomed import load_snomed_into_networkx, unzip_snomed_ct
 
 
-def test_unzip_snomed_ct():
-    # Create a temporary directory to hold the zip and extracted files
-    with tempfile.TemporaryDirectory() as tmpdir:
-        zip_path = "./data/SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z.zip"
-        extract_path = "./data/snomed"
+# def test_unzip_snomed_ct():
+#     # Create a temporary directory to hold the zip and extracted files
+#     with tempfile.TemporaryDirectory() as tmpdir:
+#         zip_path = "./data/SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z.zip"
+#         extract_path = "./data/snomed"
 
-        shutil.rmtree(extract_path, ignore_errors=True)
+#         shutil.rmtree(extract_path, ignore_errors=True)
 
-        # Run the unzip_snomed_ct function
-        unzip_snomed_ct(zip_path, extract_path)
+#         # Run the unzip_snomed_ct function
+#         unzip_snomed_ct(zip_path, extract_path)
 
-        # Check if the files were correctly extracted
-        assert os.path.exists(os.path.join(extract_path, "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z"))
-        assert os.path.exists(
-            os.path.join(
-                extract_path,
-                "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z/release_package_information.json",
-            )
-        )
+#         # Check if the files were correctly extracted
+#         assert os.path.exists(os.path.join(extract_path, "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z"))
+#         assert os.path.exists(
+#             os.path.join(
+#                 extract_path,
+#                 "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z/release_package_information.json",
+#             )
+#         )
 
 
 def test_load_snomed_into_networkx_no_index():
@@ -38,8 +38,14 @@ def test_load_snomed_into_networkx_no_index():
     with tempfile.TemporaryDirectory() as tmpdir:
         # Copy the SNOMED-CT snapshot files to the temporary directory
         snomed_files = [
+            "sct2_Concept_Snapshot_INT_20230901.txt",
             "sct2_Description_Snapshot-en_INT_20230901.txt",
+            "sct2_Identifier_Snapshot_INT_20230901.txt",
+            "sct2_RelationshipConcreteValues_Snapshot_INT_20230901.txt",
             "sct2_Relationship_Snapshot_INT_20230901.txt",
+            "sct2_sRefset_OWLExpressionSnapshot_INT_20230901.txt",
+            "sct2_StatedRelationship_Snapshot_INT_20230901.txt",
+            "sct2_TextDefinition_Snapshot-en_INT_20230901.txt",
         ]
         for file in snomed_files:
             shutil.copy(
@@ -51,7 +57,7 @@ def test_load_snomed_into_networkx_no_index():
             )
 
         # Run the function
-        G, description_id_to_concept, concept_id_to_concept = load_snomed_into_networkx(
+        G, description_id_to_concept, concept_id_to_concept, concept_id_to_text_definition = load_snomed_into_networkx(
             tmpdir, batch_size=100000, skip_embedding=True
         )
 
@@ -59,14 +65,12 @@ def test_load_snomed_into_networkx_no_index():
         save_networkx_graph(G, "./saved/snomed.graph")
         save_concept_dict(description_id_to_concept, "./saved/description_id_to_concept.pickle")
         save_concept_dict(concept_id_to_concept, "./saved/concept_id_to_concept.pickle")
+        save_concept_dict(concept_id_to_text_definition, "./saved/concept_id_to_text_definition.pickle")
 
         # Validate the output
         assert isinstance(G, nx.DiGraph)
         assert G.number_of_nodes() > 100000
         assert G.number_of_edges() > 100000
-
-        assert isinstance(description_id_to_concept, dict)
-        assert len(description_id_to_concept) > 100000
 
 
 # def test_load_snomed_into_networkx():

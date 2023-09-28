@@ -26,7 +26,7 @@ def find_adjacent_nodes(source_nodes: List[int], G: nx.DiGraph, n: int, undirect
     """
     for source_node in source_nodes:
         if not G.has_node(source_node):
-            log.exception(f"Source node {source_node} not found in the graph.")
+            raise ValueError(f"Source node {source_node} not found in the graph.")
             raise
 
     # Find all nodes adjacent to the source node within n hops
@@ -176,7 +176,7 @@ def recursive_search(
     if not semantic_types or node_tag in (semantic_types if isinstance(semantic_types, list) else [semantic_types]):
         paths.append(current_path.copy())
 
-    candidates = list(G.predecessors(node)) + list(G.successors(node)) if depth > 1 else list(G.predecessors(node))
+    candidates = list(G.predecessors(node)) + list(G.successors(node))
     for neighbor in candidates:
         paths += recursive_search(
             G,
@@ -204,7 +204,7 @@ def find_related_subgraphs(
     semantic_types: Union[None, str, List[str]] = None,
     stop_at_semantic_types: Union[None, str, List[str]] = None,
     max_depth: int = 3,
-) -> nx.Graph:
+) -> Tuple[nx.Graph, List[int]]:
     """
     Finds a consistent set of related conditions, diseases, etc., from the SNOMED graph based on the user's query.
 
@@ -256,7 +256,7 @@ def find_related_subgraphs(
                 G,
                 node,
                 semantic_types=semantic_types,
-                stop_at_semantic_types=semantic_types,
+                stop_at_semantic_types=None,
                 visited=visited,
                 depth=0,
                 max_depth=3,
@@ -272,4 +272,4 @@ def find_related_subgraphs(
             result_graph.add_edge(path[i], path[i + 1])
 
     log.info(f"Result graph has: {result_graph.number_of_nodes()} nodes and {result_graph.number_of_edges()} edges")
-    return result_graph
+    return result_graph, semantically_similar_nodes

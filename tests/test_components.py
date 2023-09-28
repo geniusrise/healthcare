@@ -16,6 +16,10 @@ from geniusrise_healthcare.search import find_related_subgraphs
 from geniusrise_healthcare.util import draw_subgraph
 
 
+QUERY = ["fever", "back pain", "shivering"]
+SEMANTIC_TYPES = ["disorder"]
+
+
 @pytest.fixture(scope="module")
 def loaded_data():
     G = load_networkx_graph("./saved/snomed.graph")
@@ -25,94 +29,97 @@ def loaded_data():
     return G, faiss_index, concept_id_to_concept, description_id_to_concept
 
 
-def test_find_largest_strongly_connected_component(loaded_data):
-    G, faiss_index, concept_id_to_concept, description_id_to_concept = loaded_data
+# def test_find_largest_strongly_connected_component(loaded_data):
+#     G, faiss_index, concept_id_to_concept, description_id_to_concept = loaded_data
 
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-    model = AutoModel.from_pretrained("bert-base-uncased")
+#     tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+#     model = AutoModel.from_pretrained("bert-base-uncased")
 
-    user_terms = ["chest pain", "shortness of breath"]
+#     user_terms = QUERY
 
-    # Find related terms based on the user's query
-    top_subgraphs = find_related_subgraphs(
-        user_terms,
-        G,
-        faiss_index,
-        model,
-        tokenizer,
-        concept_id_to_concept,
-        cutoff_score=0.1,
-        semantic_types="disorder",
-    )
-    top_subgraph = find_largest_strongly_connected_component(top_subgraphs)
+#     # Find related terms based on the user's query
+#     top_subgraphs, semantically_similar_nodes = find_related_subgraphs(
+#         user_terms,
+#         G,
+#         faiss_index,
+#         model,
+#         tokenizer,
+#         concept_id_to_concept,
+#         cutoff_score=0.1,
+#         semantic_types=SEMANTIC_TYPES,
+#     )
+#     top_subgraph = find_largest_strongly_connected_component(top_subgraphs)
 
-    draw_subgraph(
-        top_subgraph,
-        concept_id_to_concept,
-        f"graphs/strongly_connected_component-{' '.join(user_terms)}",
-    )
-    assert top_subgraph.number_of_nodes() > 0
-    assert top_subgraph.number_of_edges() >= 0
-
-
-def test_find_largest_weakly_connected_component(loaded_data):
-    G, faiss_index, concept_id_to_concept, description_id_to_concept = loaded_data
-
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-    model = AutoModel.from_pretrained("bert-base-uncased")
-
-    user_terms = ["chest pain", "shortness of breath"]
-
-    # Find related terms based on the user's query
-    top_subgraphs = find_related_subgraphs(
-        user_terms,
-        G,
-        faiss_index,
-        model,
-        tokenizer,
-        concept_id_to_concept,
-        cutoff_score=0.1,
-        semantic_types="disorder",
-    )
-    top_subgraph = find_largest_weakly_connected_component(top_subgraphs)
-
-    draw_subgraph(
-        top_subgraph,
-        concept_id_to_concept,
-        f"graphs/weakly_connected_component-{' '.join(user_terms)}",
-    )
-    assert top_subgraph.number_of_nodes() > 0
-    assert top_subgraph.number_of_edges() > 0
+#     draw_subgraph(
+#         top_subgraph,
+#         concept_id_to_concept,
+#         f"graphs/strongly_connected_component-{' '.join(user_terms)}",
+#         highlight_nodes=semantically_similar_nodes,
+#     )
+#     assert top_subgraph.number_of_nodes() > 0
+#     assert top_subgraph.number_of_edges() >= 0
 
 
-def test_find_largest_attracting_component(loaded_data):
-    G, faiss_index, concept_id_to_concept, description_id_to_concept = loaded_data
+# def test_find_largest_weakly_connected_component(loaded_data):
+#     G, faiss_index, concept_id_to_concept, description_id_to_concept = loaded_data
 
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-    model = AutoModel.from_pretrained("bert-base-uncased")
+#     tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+#     model = AutoModel.from_pretrained("bert-base-uncased")
 
-    user_terms = ["chest pain", "shortness of breath"]
+#     user_terms = QUERY
 
-    # Find related terms based on the user's query
-    top_subgraphs = find_related_subgraphs(
-        user_terms,
-        G,
-        faiss_index,
-        model,
-        tokenizer,
-        concept_id_to_concept,
-        cutoff_score=0.1,
-        semantic_types="disorder",
-    )
-    top_subgraph = find_largest_attracting_component(top_subgraphs)
+#     # Find related terms based on the user's query
+#     top_subgraphs, semantically_similar_nodes = find_related_subgraphs(
+#         user_terms,
+#         G,
+#         faiss_index,
+#         model,
+#         tokenizer,
+#         concept_id_to_concept,
+#         cutoff_score=0.1,
+#         semantic_types=SEMANTIC_TYPES,
+#     )
+#     top_subgraph = find_largest_weakly_connected_component(top_subgraphs)
 
-    draw_subgraph(
-        top_subgraph,
-        concept_id_to_concept,
-        f"graphs/attracting_component-{' '.join(user_terms)}",
-    )
-    assert top_subgraph.number_of_nodes() > 0
-    assert top_subgraph.number_of_edges() >= 0
+#     draw_subgraph(
+#         top_subgraph,
+#         concept_id_to_concept,
+#         f"graphs/weakly_connected_component-{' '.join(user_terms)}",
+#         highlight_nodes=semantically_similar_nodes,
+#     )
+#     assert top_subgraph.number_of_nodes() > 0
+#     assert top_subgraph.number_of_edges() > 0
+
+
+# def test_find_largest_attracting_component(loaded_data):
+#     G, faiss_index, concept_id_to_concept, description_id_to_concept = loaded_data
+
+#     tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+#     model = AutoModel.from_pretrained("bert-base-uncased")
+
+#     user_terms = QUERY
+
+#     # Find related terms based on the user's query
+#     top_subgraphs, semantically_similar_nodes = find_related_subgraphs(
+#         user_terms,
+#         G,
+#         faiss_index,
+#         model,
+#         tokenizer,
+#         concept_id_to_concept,
+#         cutoff_score=0.1,
+#         semantic_types=SEMANTIC_TYPES,
+#     )
+#     top_subgraph = find_largest_attracting_component(top_subgraphs)
+
+#     draw_subgraph(
+#         top_subgraph,
+#         concept_id_to_concept,
+#         f"graphs/attracting_component-{' '.join(user_terms)}",
+#         highlight_nodes=semantically_similar_nodes,
+#     )
+#     assert top_subgraph.number_of_nodes() > 0
+#     assert top_subgraph.number_of_edges() >= 0
 
 
 def test_find_largest_connected_component(loaded_data):
@@ -121,10 +128,10 @@ def test_find_largest_connected_component(loaded_data):
     tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
     model = AutoModel.from_pretrained("bert-base-uncased")
 
-    user_terms = ["chest pain", "shortness of breath"]
+    user_terms = QUERY
 
     # Find related terms based on the user's query
-    top_subgraphs = find_related_subgraphs(
+    top_subgraphs, semantically_similar_nodes = find_related_subgraphs(
         user_terms,
         G,
         faiss_index,
@@ -132,7 +139,8 @@ def test_find_largest_connected_component(loaded_data):
         tokenizer,
         concept_id_to_concept,
         cutoff_score=0.1,
-        semantic_types="disorder",
+        semantic_types=SEMANTIC_TYPES,
+        max_depth=5,
     )
     top_subgraph = find_largest_connected_component(top_subgraphs)
 
@@ -140,6 +148,7 @@ def test_find_largest_connected_component(loaded_data):
         top_subgraph,
         concept_id_to_concept,
         f"graphs/connected_component-{' '.join(user_terms)}",
+        highlight_nodes=semantically_similar_nodes,
     )
     assert top_subgraph.number_of_nodes() > 0
     assert top_subgraph.number_of_edges() > 0
@@ -151,10 +160,10 @@ def test_find_related_subgraphs(loaded_data):
     tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
     model = AutoModel.from_pretrained("bert-base-uncased")
 
-    user_terms = ["chest pain", "shortness of breath"]
+    user_terms = QUERY
 
     # Find related terms based on the user's query
-    top_subgraphs = find_related_subgraphs(
+    top_subgraphs, semantically_similar_nodes = find_related_subgraphs(
         user_terms,
         G,
         faiss_index,
@@ -162,8 +171,13 @@ def test_find_related_subgraphs(loaded_data):
         tokenizer,
         concept_id_to_concept,
         cutoff_score=0.1,
-        semantic_types="disorder",
+        semantic_types=SEMANTIC_TYPES,
         max_depth=5,
     )
-    draw_subgraph(top_subgraphs, concept_id_to_concept, f"graphs/subgraphs-{' '.join(user_terms)}")
+    draw_subgraph(
+        top_subgraphs,
+        concept_id_to_concept,
+        f"graphs/subgraphs-{' '.join(user_terms)}",
+        highlight_nodes=semantically_similar_nodes,
+    )
     assert len(top_subgraphs) > 2

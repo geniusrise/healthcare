@@ -67,7 +67,7 @@ def test_find_related_subgraphs(loaded_data):
     user_terms = ["chest pain", "shortness of breath"]
 
     # Find related terms based on the user's query
-    top_subgraphs = find_related_subgraphs(
+    top_subgraphs, _ = find_related_subgraphs(
         user_terms,
         G,
         faiss_index,

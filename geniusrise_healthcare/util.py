@@ -1,8 +1,8 @@
 import textwrap
-
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from collections import deque
 
 
 def calculate_luminance(color):
@@ -24,8 +24,28 @@ def print_dfs_chain(G, node, visited, concept_id_to_concept, chain):
             chain.pop()
 
 
-def draw_subgraph(subgraph, concept_id_to_concept, save_location, layout_name="arf"):
+def get_node_levels(G, root_nodes):
+    """Get levels of all nodes based on the shortest distance from the root nodes."""
+    levels = {}
+    visited = set()
+    queue = deque([(node, 0) for node in root_nodes])
+
+    while queue:
+        current_node, level = queue.popleft()
+
+        if current_node not in visited:
+            visited.add(current_node)
+            levels[current_node] = level
+
+            for neighbor in G.successors(current_node):
+                queue.append((neighbor, level + 1))
+
+    return levels
+
+
+def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_nodes=None, layout_name="arf"):
     num_nodes = len(subgraph.nodes())
+
     # Decide figure size based on the number of nodes
     fig_size = max(10, int(num_nodes**0.5))
 
@@ -49,17 +69,44 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, layout_name="a
 
     if layout_name == "kamada_kawai":
         pos = layout_func(subgraph, weight="degrees")
-        node_colors = plt.cm.tab20b(np.linspace(0, 1, len(subgraph.nodes())))
-        edge_colors = plt.cm.tab20b(np.linspace(0, 1, len(subgraph.edges())))
+        node_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.nodes())))
+        edge_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.edges())))
     elif layout_name == "shell":
-        pos = layout_func(subgraph, scale=0.1)
-        node_colors = plt.cm.tab20b(np.linspace(0, 1, len(subgraph.nodes())))
-        edge_colors = plt.cm.tab20b(np.linspace(0, 1, len(subgraph.edges())))
+        pos = layout_func(subgraph, scale=5)
+        node_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.nodes())))
+        edge_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.edges())))
     else:
         pos = layout_func(subgraph)
         # Generate a list of unique colors for nodes and edges
-        node_colors = plt.cm.plasma(np.linspace(0, 1, len(subgraph.nodes())))
-        edge_colors = plt.cm.plasma(np.linspace(0, 1, len(subgraph.edges())))
+        node_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.nodes())))
+        edge_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.edges())))
+
+    node_colors = node_colors.tolist()
+
+    # Get node levels
+    root_nodes = [n for n in highlight_nodes if n in subgraph.nodes]
+    node_levels = get_node_levels(subgraph, root_nodes)
+
+    # Initialize node colors based on levels
+    unique_levels = sorted(set(node_levels.values()))
+    cmap = plt.cm.get_cmap("Pastel1", len(unique_levels))
+    node_colors = [
+        cmap(unique_levels.index(node_levels.get(node, None)))
+        if node_levels.get(node, None) is not None
+        else (0, 0, 0, 1)
+        for node in subgraph.nodes()
+    ]
+
+    # Highlight specified nodes
+    if highlight_nodes:
+        highlight_color = plt.cm.Dark2(0.0)
+        linewidths = [1] * len(subgraph.nodes())
+        highlight_indices = [i for i, node in enumerate(subgraph.nodes()) if node in highlight_nodes]
+
+        for i in highlight_indices:
+            node_colors[i] = plt.cm.Dark2(0.0)
+        for i in highlight_indices:
+            linewidths[i] = 2  # Set linewidth to 2 for highlighted nodes
 
     nx.draw(
         subgraph,
@@ -71,6 +118,7 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, layout_name="a
         node_size=600,
         node_shape="o",
         node_color=node_colors,
+        linewidths=1,
         font_size=3.0,
         font_color="black",
         edge_color=edge_colors,
