@@ -134,6 +134,13 @@ def find_global_important_nodes(G: nx.DiGraph, top_n: int = 10) -> List[int]:
     return sorted(pagerank, key=pagerank.get, reverse=True)[:top_n]
 
 
+def calculate_top_one_percent_nodes(G: nx.DiGraph) -> Set[int]:
+    degrees = [(node, degree) for node, degree in G.degree()]
+    degrees.sort(key=lambda x: x[1], reverse=True)
+    top_one_percent_count = int(len(degrees) * 0.01)
+    return set(node for node, _ in degrees[:top_one_percent_count])
+
+
 def recursive_search(
     G: nx.DiGraph,
     node: int,
@@ -143,6 +150,7 @@ def recursive_search(
     depth: int,
     max_depth: int,
     current_path: List[int],
+    top_one_percent_nodes: Set[int],
 ) -> List[List[int]]:
     """
     Recursively search the graph starting from a node, collecting all paths leading to nodes of certain semantic types.
@@ -173,6 +181,12 @@ def recursive_search(
         current_path.pop()
         return paths
 
+    # Check if the node is in the top 1% of highly connected nodes
+    if node in top_one_percent_nodes:
+        paths.append(current_path.copy())
+        current_path.pop()
+        return paths
+
     if not semantic_types or node_tag in (semantic_types if isinstance(semantic_types, list) else [semantic_types]):
         paths.append(current_path.copy())
 
@@ -187,6 +201,7 @@ def recursive_search(
             depth + 1,
             max_depth,
             current_path,
+            top_one_percent_nodes=top_one_percent_nodes,
         )
 
     current_path.pop()
@@ -219,6 +234,7 @@ def find_related_subgraphs(
     Returns:
     nx.Graph: A subgraph containing nodes of the specified semantic types.
     """
+    top_1 = calculate_top_one_percent_nodes(G)
     semantically_similar_nodes = []
     if semantic_types and not all(
         st in SEMANTIC_TAGS for st in (semantic_types if isinstance(semantic_types, list) else [semantic_types])
@@ -250,6 +266,7 @@ def find_related_subgraphs(
                 depth=0,
                 max_depth=3,
                 current_path=[],
+                top_one_percent_nodes=top_1,
             )
         else:
             result_paths += recursive_search(
@@ -261,13 +278,17 @@ def find_related_subgraphs(
                 depth=0,
                 max_depth=3,
                 current_path=[],
+                top_one_percent_nodes=top_1,
             )
+
+    # Filter out paths that don't contain any of the semantically similar nodes
+    filtered_result_paths = [path for path in result_paths if any(node in semantically_similar_nodes for node in path)]
 
     # Initialize a new directed graph to store the result paths
     result_graph = nx.DiGraph()
 
-    # Add the edges from each path to the result graph
-    for path in result_paths:
+    # Add the edges from each filtered path to the result graph
+    for path in filtered_result_paths:
         for i in range(len(path) - 1):
             result_graph.add_edge(path[i], path[i + 1])
 

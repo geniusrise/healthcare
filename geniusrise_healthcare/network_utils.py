@@ -1,6 +1,7 @@
 import logging
 
 import networkx as nx
+from typing import List
 
 log = logging.getLogger(__name__)
 
@@ -67,3 +68,39 @@ def find_largest_connected_component(G: nx.DiGraph) -> nx.DiGraph:
     largest_cc = G.subgraph(largest_cc).copy()
     log.info(f"Result component has: {largest_cc.number_of_nodes()} nodes and {largest_cc.number_of_edges()} edges")
     return largest_cc
+
+
+def find_largest_connected_component_with_nodes(G: nx.DiGraph, nodes: List[int]) -> nx.DiGraph:
+    """
+    Finds the largest connected component in a directed graph that contains the maximum number of given nodes.
+
+    Parameters:
+    - G (nx.DiGraph): The directed graph.
+    - nodes (List[int]): List of node IDs that should be contained in the connected component.
+
+    Returns:
+    nx.DiGraph: The largest connected component containing the maximum number of given nodes as a new directed graph.
+    """
+    # Convert the graph to undirected for connected component analysis
+    G_undirected = G.to_undirected()
+
+    # Find all connected components
+    connected_components = list(nx.connected_components(G_undirected))
+
+    # Filter components that contain any of the given nodes
+    relevant_components = [comp for comp in connected_components if any(node in comp for node in nodes)]
+
+    if not relevant_components:
+        log.info("No connected component contains any of the given nodes.")
+        return nx.DiGraph()
+
+    # Find the largest among the filtered components
+    largest_relevant_component = max(relevant_components, key=lambda comp: len(set(comp).intersection(nodes)))
+
+    # Create a subgraph for the largest component
+    largest_relevant_subgraph = G.subgraph(largest_relevant_component).copy()
+
+    log.info(
+        f"Result component has: {largest_relevant_subgraph.number_of_nodes()} nodes and {largest_relevant_subgraph.number_of_edges()} edges"
+    )
+    return largest_relevant_subgraph

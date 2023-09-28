@@ -89,7 +89,7 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
 
     # Initialize node colors based on levels
     unique_levels = sorted(set(node_levels.values()))
-    cmap = plt.cm.get_cmap("Pastel1", len(unique_levels))
+    cmap = plt.cm.get_cmap("tab20c", len(unique_levels))
     node_colors = [
         cmap(unique_levels.index(node_levels.get(node, None)))
         if node_levels.get(node, None) is not None
@@ -99,14 +99,20 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
 
     # Highlight specified nodes
     if highlight_nodes:
-        highlight_color = plt.cm.Dark2(0.0)
+        highlight_color = plt.cm.Set1(0.0)
         linewidths = [1] * len(subgraph.nodes())
         highlight_indices = [i for i, node in enumerate(subgraph.nodes()) if node in highlight_nodes]
 
         for i in highlight_indices:
-            node_colors[i] = plt.cm.Dark2(0.0)
+            node_colors[i] = plt.cm.Set1(0.0)
         for i in highlight_indices:
             linewidths[i] = 2  # Set linewidth to 2 for highlighted nodes
+
+    # Create a mapping from node to color
+    node_to_color = {node: color for node, color in zip(subgraph.nodes(), node_colors)}
+
+    # Create a list of edge colors based on the origin node's color
+    edge_colors = [node_to_color[edge[0]] for edge in subgraph.edges()]
 
     nx.draw(
         subgraph,
