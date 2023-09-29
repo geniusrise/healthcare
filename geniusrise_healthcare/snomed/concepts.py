@@ -27,9 +27,10 @@ def process_concept_file(
 ) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
     # Initialize batch variables
-    batch_embeddings: List[torch.Tensor] = []
     batch_ids: List[int] = []
     batch_count = 0
+    fsns = []
+    set_device = False
 
     csv.field_size_limit(sys.maxsize)
 
@@ -58,25 +59,30 @@ def process_concept_file(
                     description_id_to_concept[description_id] = fsn_without_tag
                     concept_id_to_concept[concept_id] = fsn_without_tag
 
-                    # Generate embeddings
-                    if not skip_embedding and model and tokenizer and faiss_index:
-                        model.to(device)
-                        inputs = tokenizer(
-                            fsn_without_tag,
-                            return_tensors="pt",
-                            padding=True,
-                            truncation=True,
-                        ).to(device)
-                        outputs = model(**inputs)
-                        embeddings = outputs.last_hidden_state.mean(dim=1).detach()
+                    fsns.append(fsn_without_tag)
 
-                        # Add to batch
-                        batch_embeddings.append(embeddings)
-                        batch_ids.append(int(description_id))
+                    if not skip_embedding and model and tokenizer and faiss_index:
+                        if not set_device:
+                            model.to(device)
+
+                        batch_ids.append(int(concept_id))
                         batch_count += 1
 
                         # Process batch if it reaches the batch_size
                         if batch_count >= batch_size:
+                            # Generate embeddings
+                            batch_embeddings: List[torch.Tensor] = []
+                            for fsn in fsns:
+                                inputs = tokenizer(
+                                    fsn,
+                                    return_tensors="pt",
+                                ).to(device)
+                                outputs = model(**inputs)
+                                embeddings = outputs.last_hidden_state.mean(dim=1).detach()
+
+                                # Add to batch
+                                batch_embeddings.append(embeddings)
+
                             log.info("Flushing into faiss")
                             batch_embeddings = [
                                 x.cpu().numpy() if type(x) is not np.ndarray else x for x in batch_embeddings
@@ -84,11 +90,25 @@ def process_concept_file(
                             faiss_index.add_with_ids(np.vstack(batch_embeddings), np.array(batch_ids))
                             batch_embeddings.clear()
                             batch_ids.clear()
+                            fsns.clear()
                             batch_count = 0
             except Exception as e:
                 raise ValueError(f"Error processing node {row}: {e}")
 
     # Process remaining batch
     if batch_count > 0 and not skip_embedding and model and tokenizer and faiss_index:
+        batch_embeddings: List[torch.Tensor] = []  # type: ignore
+        for fsn in fsns:
+            inputs = tokenizer(
+                fsn,
+                return_tensors="pt",
+            ).to(device)
+            outputs = model(**inputs)
+            embeddings = outputs.last_hidden_state.mean(dim=1).detach()
+
+            # Add to batch
+            batch_embeddings.append(embeddings)
+
+        log.info("Final flush into faiss")
         batch_embeddings = [x.cpu().numpy() if type(x) is not np.ndarray else x for x in batch_embeddings]
         faiss_index.add_with_ids(np.vstack(batch_embeddings), np.array(batch_ids))
