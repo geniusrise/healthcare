@@ -43,6 +43,75 @@ def get_node_levels(G, root_nodes):
     return levels
 
 
+def draw_dag(subgraph, concept_id_to_concept, save_location, highlight_nodes=None):
+    """
+    Draws a directed acyclic graph (DAG).
+
+    Args:
+        subgraph (NetworkX DiGraph): The DAG to be drawn.
+        concept_id_to_concept (dict): A mapping from concept IDs to concept names.
+        save_location (str): The path to the file where the DAG will be saved.
+        highlight_nodes (list[str]): A list of concept IDs to be highlighted.
+
+    Returns:
+        None
+    """
+
+    # Set layout parameters
+    node_size = 600
+    arrowsize = 20
+
+    # Create a mapping from node to color
+    node_to_color = {}
+    for node in subgraph.nodes():
+        if node in highlight_nodes:
+            node_to_color[node] = "red"
+        else:
+            node_to_color[node] = "black"
+
+    # Create a list of edge colors based on the origin node's color
+    edge_colors = [node_to_color[edge[0]] for edge in subgraph.edges()]
+
+    # Draw the DAG
+    nx.draw(
+        subgraph,
+        pos=nx.dag_layout(subgraph),
+        with_labels=False,
+        arrows=True,
+        arrowsize=arrowsize,
+        arrowstyle="-|>",
+        node_size=node_size,
+        node_shape="o",
+        node_color=[node_to_color[node] for node in subgraph.nodes()],
+        linewidths=1,
+        font_size=3.0,
+        font_color="white",
+        edge_color=edge_colors,
+        style="solid",
+    )
+
+    # Annotate nodes with wrapped text
+    for node in subgraph.nodes():
+        node_data = subgraph.nodes[node]
+        semantic_tag = node_data.get("semantic_tag", "")
+        concept_name = concept_id_to_concept.get(str(node), str(node))
+        full_label = f"{concept_name}\n({semantic_tag})" if semantic_tag else f"{concept_name}"
+
+        label = textwrap.fill(full_label, width=15)
+        plt.annotate(
+            label,
+            xy=subgraph.nodes[node]["pos"],
+            xytext=(0, 0),
+            textcoords="offset points",
+            fontsize=3.0,
+            ha="center",
+            va="center",
+            color="white",
+        )
+
+    plt.savefig(f"{save_location}.png", bbox_inches="tight", pad_inches=0.1)
+
+
 def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_nodes=None, layout_name="arf"):
     num_nodes = len(subgraph.nodes())
 
@@ -160,7 +229,7 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
 
 def generate_embeddings(term: str, model, tokenizer) -> np.ndarray:
     """
-    Generates embeddings for a given term using a BERT model.
+    Generates embeddings for a given term using a model.
 
     Parameters:
     - term (str): The term for which to generate the embeddings.
@@ -170,7 +239,23 @@ def generate_embeddings(term: str, model, tokenizer) -> np.ndarray:
     Returns:
     np.ndarray: The generated embeddings.
     """
-    inputs = tokenizer(term, return_tensors="pt", padding=True, truncation=True).to("cpu")
+    # Generate inputs
+    inputs = tokenizer(term, return_tensors="pt")
+
+    # Move inputs to the same device as the model
+    inputs = inputs.to(model.device)
+
+    # Generate outputs
     outputs = model(**inputs)
-    embeddings = outputs.last_hidden_state.mean(dim=1).detach().numpy()
+
+    # Get the embeddings
+    embeddings = outputs.last_hidden_state.mean(dim=1)
+
+    # Check if we are using CUDA and move to CPU if necessary
+    if embeddings.is_cuda:
+        embeddings = embeddings.cpu()
+
+    # Detach and convert to NumPy
+    embeddings = embeddings.detach().numpy()
+
     return embeddings
