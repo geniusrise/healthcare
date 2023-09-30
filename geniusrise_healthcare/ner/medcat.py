@@ -7,7 +7,7 @@ from medcat.cat import CAT
 log = logging.getLogger(__name__)
 
 
-def annotate_text_with_snomed(
+def annotate_snomed(
     cat: CAT, data: pd.DataFrame, type_ids_filter: List[str], page_size: int = 5000
 ) -> Dict[int, Dict[str, Union[str, List[Dict[str, Union[str, int]]]]]]:
     """
@@ -27,7 +27,7 @@ def annotate_text_with_snomed(
     cat = CAT.load_model_pack("path/to/model_pack")
     data = pd.read_csv("path/to/data.csv")
     type_ids_filter = ['T047', 'T048']
-    results = annotate_text_with_snomed(cat, data, type_ids_filter)
+    results = annotate_snomed(cat, data, type_ids_filter)
     ```
 
     """

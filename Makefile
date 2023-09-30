@@ -6,4 +6,4 @@ test:
 
 publish:
 	@python setup.py sdist bdist_wheel
-	@twine upload dist/geniusrise_healthcare-$-* --verbose
+	@twine upload dist/-$-* --verbose

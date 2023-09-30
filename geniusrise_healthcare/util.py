@@ -43,12 +43,12 @@ def get_node_levels(G, root_nodes):
     return levels
 
 
-def draw_dag(subgraph, concept_id_to_concept, save_location, highlight_nodes=None):
+def draw_dag(dag, concept_id_to_concept, save_location, highlight_nodes=None):
     """
-    Draws a directed acyclic graph (DAG).
+    Draws a directed acyclic graph (DAG) without using the `nx.dag_layout()` function.
 
     Args:
-        subgraph (NetworkX DiGraph): The DAG to be drawn.
+        dag (NetworkX DiGraph): The DAG to be drawn.
         concept_id_to_concept (dict): A mapping from concept IDs to concept names.
         save_location (str): The path to the file where the DAG will be saved.
         highlight_nodes (list[str]): A list of concept IDs to be highlighted.
@@ -63,26 +63,29 @@ def draw_dag(subgraph, concept_id_to_concept, save_location, highlight_nodes=Non
 
     # Create a mapping from node to color
     node_to_color = {}
-    for node in subgraph.nodes():
+    for node in dag.nodes():
         if node in highlight_nodes:
             node_to_color[node] = "red"
         else:
             node_to_color[node] = "black"
 
     # Create a list of edge colors based on the origin node's color
-    edge_colors = [node_to_color[edge[0]] for edge in subgraph.edges()]
+    edge_colors = [node_to_color[edge[0]] for edge in dag.edges()]
+
+    # Get the position of each node in the DAG
+    node_positions = nx.get_node_attributes(dag, ["pos"])
 
     # Draw the DAG
     nx.draw(
-        subgraph,
-        pos=nx.dag_layout(subgraph),
+        dag,
+        pos=node_positions,
         with_labels=False,
         arrows=True,
         arrowsize=arrowsize,
         arrowstyle="-|>",
         node_size=node_size,
         node_shape="o",
-        node_color=[node_to_color[node] for node in subgraph.nodes()],
+        node_color=[node_to_color[node] for node in dag.nodes()],
         linewidths=1,
         font_size=3.0,
         font_color="white",
@@ -91,8 +94,8 @@ def draw_dag(subgraph, concept_id_to_concept, save_location, highlight_nodes=Non
     )
 
     # Annotate nodes with wrapped text
-    for node in subgraph.nodes():
-        node_data = subgraph.nodes[node]
+    for node in dag.nodes():
+        node_data = dag.nodes[node]
         semantic_tag = node_data.get("semantic_tag", "")
         concept_name = concept_id_to_concept.get(str(node), str(node))
         full_label = f"{concept_name}\n({semantic_tag})" if semantic_tag else f"{concept_name}"
@@ -100,7 +103,7 @@ def draw_dag(subgraph, concept_id_to_concept, save_location, highlight_nodes=Non
         label = textwrap.fill(full_label, width=15)
         plt.annotate(
             label,
-            xy=subgraph.nodes[node]["pos"],
+            xy=node_positions[node],
             xytext=(0, 0),
             textcoords="offset points",
             fontsize=3.0,

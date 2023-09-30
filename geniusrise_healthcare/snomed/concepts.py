@@ -21,11 +21,11 @@ def process_concept_file(
     tokenizer=None,
     model=None,
     faiss_index=None,
-    use_gpu=True,
+    use_cuda=True,
     batch_size=10000,
     skip_embedding=False,
 ) -> None:
-    device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and use_cuda else "cpu")
     # Initialize batch variables
     batch_ids: List[int] = []
     batch_count = 0

@@ -10,11 +10,15 @@ from geniusrise_healthcare.io import (
     save_networkx_graph,
     save_faiss_index,
 )
+from geniusrise_healthcare.model import load_huggingface_model
 from geniusrise_healthcare.snomed import load_snomed_into_networkx, unzip_snomed_ct
 
 from transformers import AutoTokenizer, AutoModel
-import torch
 import faiss
+
+
+# MODEL = "/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf"
+MODEL = "/run/media/ixaxaar/hynix_2tb/models/CodeLlama-13b-Python-hf"
 
 
 def test_unzip_snomed_ct():
@@ -132,10 +136,7 @@ def test_load_snomed_into_networkx_llama_local():
     return True
 
     # Initialize tokenizer and model
-    tokenizer = AutoTokenizer.from_pretrained(
-        "/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf", torch_dtype=torch.float16, model_max_length=512
-    )
-    model = AutoModel.from_pretrained("/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf", torch_dtype=torch.float16)
+    model, tokenizer = load_huggingface_model(MODEL, use_cuda=True)
 
     # Initialize FAISS index
     quantizer = faiss.IndexFlatL2(4096)  # 768 is the dimension of BERT embeddings
@@ -157,8 +158,8 @@ def test_load_snomed_into_networkx_llama_local():
     assert G.number_of_edges() > 100000
 
     # Save the data
-    save_networkx_graph(G, "./saved-llama-7b/snomed.graph")
-    save_faiss_index(faiss_index, "./saved-llama-7b/faiss.index")
-    save_concept_dict(description_id_to_concept, "./saved-llama-7b/description_id_to_concept.pickle")
-    save_concept_dict(concept_id_to_concept, "./saved-llama-7b/concept_id_to_concept.pickle")
-    save_concept_dict(concept_id_to_text_definition, "./saved-llama-7b/concept_id_to_text_definition.pickle")
+    save_networkx_graph(G, "./saved-codellama-13b/snomed.graph")
+    save_faiss_index(faiss_index, "./saved-codellama-13b/faiss.index")
+    save_concept_dict(description_id_to_concept, "./saved-codellama-13b/description_id_to_concept.pickle")
+    save_concept_dict(concept_id_to_concept, "./saved-codellama-13b/concept_id_to_concept.pickle")
+    save_concept_dict(concept_id_to_text_definition, "./saved-codellama-13b/concept_id_to_text_definition.pickle")

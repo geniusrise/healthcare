@@ -21,11 +21,11 @@ def load_snomed_into_networkx(
     model=None,
     faiss_index=None,
     version="INT_20230901",
-    use_gpu=True,
+    use_cuda=True,
     batch_size=10000,
     skip_embedding=False,
 ) -> Tuple[nx.DiGraph, Dict[str, str], Dict[str, str], Dict[str, str]]:
-    device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and use_cuda else "cpu")
 
     G = nx.DiGraph()
     description_id_to_concept: Dict[str, str] = {}
@@ -47,7 +47,7 @@ def load_snomed_into_networkx(
         tokenizer,
         model,
         faiss_index,
-        use_gpu,
+        use_cuda,
         batch_size,
         skip_embedding,
     )

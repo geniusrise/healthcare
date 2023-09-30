@@ -7,6 +7,7 @@ from geniusrise_healthcare.io import (
     load_faiss_index,
     load_networkx_graph,
 )
+from geniusrise_healthcare.model import load_huggingface_model
 from geniusrise_healthcare.search import (
     find_adjacent_nodes,
     find_related_subgraphs,
@@ -15,20 +16,21 @@ from geniusrise_healthcare.search import (
 from geniusrise_healthcare.util import draw_subgraph
 
 
+MODEL = "/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf"
+
+
 @pytest.fixture(scope="module")
 def loaded_data():
     G = load_networkx_graph("./saved/snomed.graph")
     faiss_index = load_faiss_index("./saved/faiss.index.old")
     concept_id_to_concept = load_concept_dict("./saved/concept_id_to_concept.pickle")
     description_id_to_concept = load_concept_dict("./saved/description_id_to_concept.pickle")
-    return G, faiss_index, concept_id_to_concept, description_id_to_concept
+    model, tokenizer = load_huggingface_model(MODEL)
+    return G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model
 
 
 def test_find_semantic_and_adjacent_nodes_compose(loaded_data):
-    G, faiss_index, concept_id_to_concept, description_id_to_concept = loaded_data
-
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-    model = AutoModel.from_pretrained("bert-base-uncased")
+    G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model = loaded_data
 
     nodes = ["chest pain", "shortness of breath"]
     subgraphs = []
@@ -59,10 +61,7 @@ def test_find_semantic_and_adjacent_nodes_compose(loaded_data):
 
 
 def test_find_related_subgraphs(loaded_data):
-    G, faiss_index, concept_id_to_concept, description_id_to_concept = loaded_data
-
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-    model = AutoModel.from_pretrained("bert-base-uncased")
+    G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model = loaded_data
 
     user_terms = ["chest pain", "shortness of breath"]
 
