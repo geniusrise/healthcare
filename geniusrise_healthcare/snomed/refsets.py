@@ -1,8 +1,9 @@
-from typing import List, Tuple
-from pyparsing import Word, nums, Literal, OneOrMore, Group, ZeroOrMore
 import csv
 import logging
+from typing import List, Tuple
+
 import networkx as nx
+from pyparsing import Group, Literal, OneOrMore, Word, ZeroOrMore, nums
 from tqdm import tqdm
 
 log = logging.getLogger(__name__)

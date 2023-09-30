@@ -1,8 +1,9 @@
 import textwrap
+from collections import deque
+
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from collections import deque
 
 
 def calculate_luminance(color):

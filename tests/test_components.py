@@ -1,22 +1,13 @@
 import pytest
 
-from geniusrise_healthcare.io import (
-    load_concept_dict,
-    load_faiss_index,
-    load_networkx_graph,
-)
+from geniusrise_healthcare.io import load_concept_dict, load_faiss_index, load_networkx_graph
 from geniusrise_healthcare.model import load_huggingface_model
-
-from geniusrise_healthcare.network_utils import (
-    # find_largest_attracting_component,
+from geniusrise_healthcare.network_utils import (  # find_largest_attracting_component,; find_largest_strongly_connected_component,; find_largest_weakly_connected_component,
     find_largest_connected_component,
-    # find_largest_strongly_connected_component,
-    # find_largest_weakly_connected_component,
     find_largest_connected_component_with_nodes,
 )
 from geniusrise_healthcare.search import find_related_subgraphs
 from geniusrise_healthcare.util import draw_dag
-
 
 QUERY = ["high fever", "back pain", "shivering"]
 SEMANTIC_TYPES = ["disorder"]

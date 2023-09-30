@@ -1,5 +1,5 @@
-from .medcat import annotate_snomed as annotate_snomed_medcat
 from .llama import annotate_snomed as annotate_snomed_llama2
+from .medcat import annotate_snomed as annotate_snomed_medcat
 
 
 def annotate_snomed(type: str, *args, **kwargs):

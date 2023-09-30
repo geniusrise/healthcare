@@ -1,7 +1,7 @@
 import logging
+from typing import List
 
 import networkx as nx
-from typing import List
 
 log = logging.getLogger(__name__)
 

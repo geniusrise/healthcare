@@ -4,18 +4,12 @@ import shutil
 import tempfile
 
 import networkx as nx
+from transformers import AutoModel, AutoTokenizer
 
-from geniusrise_healthcare.io import (
-    save_concept_dict,
-    save_networkx_graph,
-    save_faiss_index,
-)
+import faiss
+from geniusrise_healthcare.io import save_concept_dict, save_faiss_index, save_networkx_graph
 from geniusrise_healthcare.model import load_huggingface_model
 from geniusrise_healthcare.snomed import load_snomed_into_networkx, unzip_snomed_ct
-
-from transformers import AutoTokenizer, AutoModel
-import faiss
-
 
 # MODEL = "/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf"
 MODEL = "/run/media/ixaxaar/hynix_2tb/models/CodeLlama-13b-Python-hf"

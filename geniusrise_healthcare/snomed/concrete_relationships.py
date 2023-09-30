@@ -2,6 +2,7 @@
 
 import csv
 import logging
+
 import networkx as nx
 from tqdm import tqdm
 

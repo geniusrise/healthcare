@@ -2,19 +2,10 @@ import networkx as nx
 import pytest
 from transformers import AutoModel, AutoTokenizer
 
-from geniusrise_healthcare.io import (
-    load_concept_dict,
-    load_faiss_index,
-    load_networkx_graph,
-)
+from geniusrise_healthcare.io import load_concept_dict, load_faiss_index, load_networkx_graph
 from geniusrise_healthcare.model import load_huggingface_model
-from geniusrise_healthcare.search import (
-    find_adjacent_nodes,
-    find_related_subgraphs,
-    find_semantically_similar_nodes,
-)
+from geniusrise_healthcare.search import find_adjacent_nodes, find_related_subgraphs, find_semantically_similar_nodes
 from geniusrise_healthcare.util import draw_subgraph
-
 
 MODEL = "/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf"
 

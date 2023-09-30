@@ -2,7 +2,6 @@ import logging
 import zipfile
 from typing import Tuple
 
-
 log = logging.getLogger(__name__)
 
 

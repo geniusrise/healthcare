@@ -1,14 +1,15 @@
+from pathlib import Path
+from typing import List
+
 import pandas as pd
 import pytest
 from medcat.cat import CAT
 from medcat.cdb import CDB
 from medcat.config import Config
-from pathlib import Path
 from spacy.util import load_model_from_path
-from typing import List
 
-from geniusrise_healthcare.ner import annotate_snomed
 from geniusrise_healthcare.model import load_huggingface_model
+from geniusrise_healthcare.ner import annotate_snomed
 
 # Load the CDB and vocab
 cdb = CDB.load("models/medcat-snomed/cdb.dat")

@@ -6,11 +6,11 @@ import networkx as nx
 import torch
 
 from .concepts import process_concept_file
-from .relationships import process_relationship_file
 from .concrete_relationships import process_concrete_values_file
+from .refsets import process_refsets_file
+from .relationships import process_relationship_file
 from .stated_relationships import process_stated_relationship_file
 from .text_definitions import process_text_definition_file
-from .refsets import process_refsets_file
 
 log = logging.getLogger(__name__)
 
