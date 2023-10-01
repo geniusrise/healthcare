@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Any
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, GPTQConfig
@@ -99,6 +99,7 @@ def load_huggingface_model(
     quantize_dataset: str = "c4",
     quantize_save_dir: str = "./quantized_model",
     max_memory={0: "24GB"},
+    **model_args: Any,
 ) -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
     """
     Loads a Hugging Face model and tokenizer optimized for inference.
@@ -142,13 +143,14 @@ def load_huggingface_model(
 
     # Check if a quantized model exists and should be loaded
     if quantize and os.path.exists(quantized_model_path):
-        log.info(f"Loading saved quantized model from {quantize_save_dir}")
+        log.info(f"Loading saved quantized model from {quantize_save_dir} with {model_args}")
         model = AutoModelForCausalLM.from_pretrained(
             quantize_save_dir,
             torch_dtype=torch_dtype,
             torchscript=True,
             max_memory=max_memory,
             device_map="auto",
+            **model_args,
         )
     else:
         # Quantize the model if requested and save it
@@ -161,13 +163,14 @@ def load_huggingface_model(
             )
             log.info(f"Model quantized to {quantize_bits}-bits.")
         else:
-            log.info(f"Loading model from {model_name}")
+            log.info(f"Loading model from {model_name} with {model_args}")
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 torch_dtype=torch_dtype,
                 torchscript=True,
                 max_memory=max_memory,
                 device_map="auto",
+                **model_args,
             )
 
     # Set to evaluation mode for inference
