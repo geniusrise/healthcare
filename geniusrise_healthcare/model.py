@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import List, Optional, Tuple, Union
 
 import torch
@@ -10,15 +11,15 @@ log = logging.getLogger(__name__)
 def quantize_transformer_model_with_autogptq(
     model_id: str,
     bits: int,
-    dataset: Union[str, List[str]],
     save_dir: str,
+    dataset: Union[str, List[str]] = "c4",
     device_map: Optional[str] = "auto",
     group_size: Optional[int] = 128,
     damp_percent: Optional[float] = 0.1,
     desc_act: Optional[bool] = False,
     sym: Optional[bool] = True,
     true_sequential: Optional[bool] = True,
-    use_cuda_fp16: Optional[bool] = False,
+    use_cuda_fp16: Optional[bool] = True,
     model_seqlen: Optional[int] = None,
     block_name_to_quantize: Optional[str] = None,
     module_name_preceding_first_block: Optional[List[str]] = None,
@@ -74,7 +75,12 @@ def quantize_transformer_model_with_autogptq(
     )
 
     # Load and quantize the model
-    model = AutoModelForCausalLM.from_pretrained(model_id, device_map=device_map, quantization_config=gptq_config)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        device_map="auto",
+        torch_dtype=torch.float16 if use_cuda_fp16 else torch.float32,
+        quantization_config=gptq_config,
+    )
 
     # Save the quantized model
     model.save_pretrained(save_dir)
@@ -86,12 +92,13 @@ def quantize_transformer_model_with_autogptq(
 
 def load_huggingface_model(
     model_name: str,
-    use_cuda: bool = True,
+    use_cuda: bool = False,
     precision: str = "float16",
     quantize: bool = False,
     quantize_bits: int = 8,
     quantize_dataset: str = "c4",
     quantize_save_dir: str = "./quantized_model",
+    max_memory={0: "24GB"},
 ) -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
     """
     Loads a Hugging Face model and tokenizer optimized for inference.
@@ -104,6 +111,7 @@ def load_huggingface_model(
     - quantize_bits (int): Bit-width for quantization. Only 4 and 8 are supported. Default is 8.
     - quantize_dataset (str): The dataset used for quantization. Default is "c4".
     - quantize_save_dir (str): Directory to save the quantized model. Default is "./quantized_model".
+    - max_memory (str): Maximum GPU memory to be allocated.
 
     Returns:
     Tuple[AutoModelForCausalLM, AutoTokenizer]: The loaded model and tokenizer.
@@ -130,7 +138,37 @@ def load_huggingface_model(
 
     # Load the model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_name, torch_dtype=torch_dtype)
-    model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch_dtype, torchscript=True)
+    quantized_model_path = os.path.join(quantize_save_dir, f"{model_name}_quantized.pth")
+
+    # Check if a quantized model exists and should be loaded
+    if quantize and os.path.exists(quantized_model_path):
+        log.info(f"Loading saved quantized model from {quantize_save_dir}")
+        model = AutoModelForCausalLM.from_pretrained(
+            quantize_save_dir,
+            torch_dtype=torch_dtype,
+            torchscript=True,
+            max_memory=max_memory,
+            device_map="auto",
+        )
+    else:
+        # Quantize the model if requested and save it
+        if quantize:
+            model = quantize_transformer_model_with_autogptq(
+                model_id=model_name,
+                bits=quantize_bits,
+                save_dir=quantize_save_dir,
+                use_cuda_fp16=True if "float16" in precision else False,
+            )
+            log.info(f"Model quantized to {quantize_bits}-bits.")
+        else:
+            log.info(f"Loading model from {model_name}")
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                torch_dtype=torch_dtype,
+                torchscript=True,
+                max_memory=max_memory,
+                device_map="auto",
+            )
 
     # Set to evaluation mode for inference
     model.eval()
@@ -139,13 +177,6 @@ def load_huggingface_model(
     if use_cuda and torch.cuda.is_available():
         log.info("Using CUDA for Hugging Face model.")
         model.to("cuda:0")
-
-    # Quantize the model if requested
-    if quantize:
-        model = quantize_transformer_model_with_autogptq(
-            model_id=model_name, bits=quantize_bits, dataset=quantize_dataset, save_dir=quantize_save_dir
-        )
-        log.info(f"Model quantized to {quantize_bits}-bits.")
 
     log.debug("Hugging Face model and tokenizer loaded successfully.")
     return model, tokenizer
