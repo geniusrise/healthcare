@@ -22,7 +22,7 @@ SEMANTIC_TYPES = ["disorder"]
 
 MODEL = "bert-base-uncased"
 NETWORKX_GRAPH = "./saved/snomed.graph"
-FAISS_INDEX = "./saved/faiss.index.old"
+FAISS_INDEX = "./saved/faiss.index"
 CONCEPT_ID_TO_CONCEPT = "./saved/concept_id_to_concept.pickle"
 DESCRIPTION_ID_TO_CONCEPT = "./saved/description_id_to_concept.pickle"
 

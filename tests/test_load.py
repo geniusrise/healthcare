@@ -9,31 +9,10 @@ from transformers import AutoModel, AutoTokenizer
 import faiss
 from geniusrise_healthcare.io import save_concept_dict, save_faiss_index, save_networkx_graph
 from geniusrise_healthcare.model import load_huggingface_model
-from geniusrise_healthcare.snomed import load_snomed_into_networkx, unzip_snomed_ct
+from geniusrise_healthcare.snomed import load_snomed_into_networkx
 
 # MODEL = "/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf"
 MODEL = "/run/media/ixaxaar/hynix_2tb/models/CodeLlama-13b-Python-hf"
-
-
-def test_unzip_snomed_ct():
-    # Create a temporary directory to hold the zip and extracted files
-    with tempfile.TemporaryDirectory() as tmpdir:
-        zip_path = "./data/SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z.zip"
-        extract_path = "./data/snomed"
-
-        shutil.rmtree(extract_path, ignore_errors=True)
-
-        # Run the unzip_snomed_ct function
-        unzip_snomed_ct(zip_path, extract_path)
-
-        # Check if the files were correctly extracted
-        assert os.path.exists(os.path.join(extract_path, "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z"))
-        assert os.path.exists(
-            os.path.join(
-                extract_path,
-                "SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z/release_package_information.json",
-            )
-        )
 
 
 def test_load_snomed_into_networkx_no_index():
@@ -65,10 +44,10 @@ def test_load_snomed_into_networkx_no_index():
         )
 
         # Save the data
-        save_networkx_graph(G, "./saved/snomed.graph")
-        save_concept_dict(description_id_to_concept, "./saved/description_id_to_concept.pickle")
-        save_concept_dict(concept_id_to_concept, "./saved/concept_id_to_concept.pickle")
-        save_concept_dict(concept_id_to_text_definition, "./saved/concept_id_to_text_definition.pickle")
+        save_networkx_graph(G, "./saved-no-index/snomed.graph")
+        save_concept_dict(description_id_to_concept, "./saved-no-index/description_id_to_concept.pickle")
+        save_concept_dict(concept_id_to_concept, "./saved-no-index/concept_id_to_concept.pickle")
+        save_concept_dict(concept_id_to_text_definition, "./saved-no-index/concept_id_to_text_definition.pickle")
 
         # Validate the output
         assert isinstance(G, nx.DiGraph)

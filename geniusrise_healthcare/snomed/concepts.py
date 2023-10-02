@@ -59,9 +59,8 @@ def process_concept_file(
                     description_id_to_concept[description_id] = fsn_without_tag
                     concept_id_to_concept[concept_id] = fsn_without_tag
 
-                    fsns.append(fsn_without_tag)
-
                     if not skip_embedding and model and tokenizer and faiss_index:
+                        fsns.append(fsn_without_tag)
                         if not set_device:
                             model.to(device)
 
