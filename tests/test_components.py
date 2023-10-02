@@ -6,8 +6,9 @@ from geniusrise_healthcare.network_utils import (  # find_largest_attracting_com
     find_largest_connected_component,
     find_largest_connected_component_with_nodes,
 )
+from transformers import AutoModel, AutoTokenizer
 from geniusrise_healthcare.search import find_related_subgraphs
-from geniusrise_healthcare.util import draw_dag
+from geniusrise_healthcare.util import draw_subgraph
 
 QUERY = ["high fever", "back pain", "shivering"]
 SEMANTIC_TYPES = ["disorder"]
@@ -32,7 +33,14 @@ def loaded_data():
     faiss_index = load_faiss_index(FAISS_INDEX)
     concept_id_to_concept = load_concept_dict(CONCEPT_ID_TO_CONCEPT)
     description_id_to_concept = load_concept_dict(DESCRIPTION_ID_TO_CONCEPT)
-    model, tokenizer = load_huggingface_model(MODEL, use_cuda=True)
+
+    if MODEL != "bert-base-uncased":
+        model, tokenizer = load_huggingface_model(
+            MODEL, use_cuda=True, device_map=None, precision="float32", model_class_name="AutoModel"
+        )
+    else:
+        tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+        model = AutoModel.from_pretrained("bert-base-uncased")
     return G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model
 
 
@@ -53,7 +61,7 @@ def test_find_related_subgraphs(loaded_data):
         semantic_types=SEMANTIC_TYPES,
         max_depth=2,
     )
-    draw_dag(
+    draw_subgraph(
         top_subgraphs,
         concept_id_to_concept,
         f"graphs/subgraphs-{' '.join(user_terms)}",
@@ -80,7 +88,7 @@ def test_find_related_subgraphs_stop(loaded_data):
         stop_at_semantic_types=SEMANTIC_TYPES,
         max_depth=2,
     )
-    draw_dag(
+    draw_subgraph(
         top_subgraphs,
         concept_id_to_concept,
         f"graphs/stop_subgraphs-{' '.join(user_terms)}",
@@ -107,7 +115,7 @@ def test_find_related_subgraphs_stop(loaded_data):
 #     )
 #     top_subgraph = find_largest_strongly_connected_component(top_subgraphs)
 
-#     draw_dag(
+#     draw_subgraph(
 #         top_subgraph,
 #         concept_id_to_concept,
 #         f"graphs/strongly_connected_component-{' '.join(user_terms)}",
@@ -135,7 +143,7 @@ def test_find_related_subgraphs_stop(loaded_data):
 #     )
 #     top_subgraph = find_largest_weakly_connected_component(top_subgraphs)
 
-#     draw_dag(
+#     draw_subgraph(
 #         top_subgraph,
 #         concept_id_to_concept,
 #         f"graphs/weakly_connected_component-{' '.join(user_terms)}",
@@ -163,7 +171,7 @@ def test_find_related_subgraphs_stop(loaded_data):
 #     )
 #     top_subgraph = find_largest_attracting_component(top_subgraphs)
 
-#     draw_dag(
+#     draw_subgraph(
 #         top_subgraph,
 #         concept_id_to_concept,
 #         f"graphs/attracting_component-{' '.join(user_terms)}",
@@ -192,7 +200,7 @@ def test_find_largest_connected_component(loaded_data):
     )
     top_subgraph = find_largest_connected_component(top_subgraphs)
 
-    draw_dag(
+    draw_subgraph(
         top_subgraph,
         concept_id_to_concept,
         f"graphs/nodes_connected_component-{' '.join(user_terms)}",
@@ -221,7 +229,7 @@ def test_find_largest_connected_component_with_nodes(loaded_data):
     )
     top_subgraph = find_largest_connected_component_with_nodes(top_subgraphs, semantically_similar_nodes)
 
-    draw_dag(
+    draw_subgraph(
         top_subgraph,
         concept_id_to_concept,
         f"graphs/connected_component-{' '.join(user_terms)}",
@@ -251,7 +259,7 @@ def test_find_largest_connected_component_stop(loaded_data):
     )
     top_subgraph = find_largest_connected_component(top_subgraphs)
 
-    draw_dag(
+    draw_subgraph(
         top_subgraph,
         concept_id_to_concept,
         f"graphs/stop_connected_component-{' '.join(user_terms)}",
@@ -281,7 +289,7 @@ def test_find_largest_connected_component_with_nodes_stop(loaded_data):
     )
     top_subgraph = find_largest_connected_component_with_nodes(top_subgraphs, semantically_similar_nodes)
 
-    draw_dag(
+    draw_subgraph(
         top_subgraph,
         concept_id_to_concept,
         f"graphs/stop_node_connected_component-{' '.join(user_terms)}",

@@ -52,9 +52,8 @@ def test_find_semantic_and_adjacent_nodes_compose(loaded_data):
         closest_nodes = find_semantically_similar_nodes(faiss_index, embeddings, cutoff_score=0.1)
 
         if len(closest_nodes) > 0:
-            inward, outward, neighbors = find_adjacent_nodes([int(x[0]) for x in closest_nodes], G, n=1)
+            neighbors = find_adjacent_nodes([int(x[0]) for x in closest_nodes], G, n=1, top_n=5)
             subgraphs.append(neighbors)
-            # draw_subgraph(neighbors, concept_id_to_concept, f"graphs/{' '.join(nodes)}")
 
     subgraphs = [x for y in subgraphs for x in y if x.number_of_nodes() > 1]
     composed_graph = subgraphs[0].copy()
@@ -65,18 +64,17 @@ def test_find_semantic_and_adjacent_nodes_compose(loaded_data):
 
     # Draw the subgraph
     draw_subgraph(composed_graph, concept_id_to_concept, f"graphs/{' '.join(nodes)}")
-
-    assert composed_graph.number_of_nodes() > 1
+    assert composed_graph.number_of_nodes() > len(nodes)
 
 
 def test_find_related_subgraphs(loaded_data):
     G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model = loaded_data
 
-    user_terms = ["chest pain", "shortness of breath"]
+    nodes = ["chest pain", "shortness of breath"]
 
     # Find related terms based on the user's query
-    top_subgraphs, _ = find_related_subgraphs(
-        user_terms,
+    subgraphs, _ = find_related_subgraphs(
+        nodes,
         G,
         faiss_index,
         model,
@@ -85,7 +83,16 @@ def test_find_related_subgraphs(loaded_data):
         cutoff_score=0.1,
         semantic_types="disorder",
     )
-    assert len(top_subgraphs) > 2
+
+    subgraphs = [x for y in subgraphs for x in y if x.number_of_nodes() > 1]
+    composed_graph = subgraphs[0].copy()
+
+    # Intersect with each subsequent graph
+    for graph in subgraphs[1:]:
+        composed_graph = nx.compose(composed_graph, graph)
+
+    draw_subgraph(composed_graph, concept_id_to_concept, f"graphs/{' '.join(nodes)}")
+    assert len(composed_graph) > 2
 
 
 def test_find_semantically_similar_nodes(loaded_data):

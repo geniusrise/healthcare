@@ -11,38 +11,46 @@ from geniusrise_healthcare.model import generate_embeddings
 log = logging.getLogger(__name__)
 
 
-def find_adjacent_nodes(source_nodes: List[int], G: nx.DiGraph, n: int, undirected: bool = False):
+def find_adjacent_nodes(
+    source_nodes: List[int], G: nx.DiGraph, n: int = 1, top_n: int = 5, undirected: bool = False
+) -> List[nx.DiGraph]:
     """
-    Finds the subset of semantic nodes that are adjacent to the source node within n hops and those that are not.
+    Finds the subset of nodes that are adjacent to the source nodes within n hops.
 
     Parameters:
-    - source_node (str): The source node in the NetworkX graph.
-    - semantic_nodes (List[str]): List of semantically close nodes from the FAISS index.
+    - source_nodes (List[int]): The source nodes in the NetworkX graph.
     - G (nx.DiGraph): The NetworkX graph.
     - n (int): The number of hops to consider for adjacency.
+    - top_n (int): The number of top nodes to consider based on degree.
+    - undirected (bool): Whether to consider the graph as undirected.
 
     Returns:
-    Tuple[Set[str], Set[str]]: Two sets containing the nodes that are both semantic and adjacent, and those that are semantic but not adjacent.
+    List[nx.DiGraph]: A list of subgraphs containing the source nodes, their adjacent nodes, and the edges between them.
     """
+    subgraphs = []
     for source_node in source_nodes:
         if not G.has_node(source_node):
             raise ValueError(f"Source node {source_node} not found in the graph.")
-            raise
 
-    # Find all nodes adjacent to the source node within n hops
-    inward = []
-    outward = []
-    neighbors = []
-    for source_node in source_nodes:
-        _inward = G.in_edges(source_node)
-        _outward = G.out_edges(source_node)
-        inward.append(_inward)
-        outward.append(_outward)
+        # Find all nodes adjacent to the source node within n hops
+        if n == 1:
+            subgraph = G.subgraph(set(list(G.predecessors(source_node)) + [source_node]))
+        else:
+            subgraph = nx.ego_graph(G.reverse(), source_node, radius=n, undirected=undirected, center=True)
 
-        subgraph = nx.ego_graph(G, source_node, radius=n, undirected=undirected, center=True)
-        neighbors.append(subgraph)
+        # Sort nodes by degree and keep only the top_n nodes along with the source node
+        sorted_nodes = sorted(subgraph.nodes(), key=lambda x: subgraph.degree(x), reverse=True)
+        top_nodes = sorted_nodes[:top_n] if top_n < len(sorted_nodes) else sorted_nodes
 
-    return inward, outward, neighbors
+        # Always include the source node
+        if source_node not in top_nodes:
+            top_nodes.append(source_node)
+
+        # Create a new subgraph with only the top_n nodes and the source node
+        filtered_subgraph = subgraph.subgraph(top_nodes).copy()
+        subgraphs.append(filtered_subgraph)
+
+    return subgraphs
 
 
 def find_semantically_similar_nodes(
@@ -115,7 +123,7 @@ def find_local_important_nodes(G: nx.DiGraph, node: int, n: int = 1) -> List[int
     Returns:
     List[int]: A list of locally important nodes.
     """
-    subgraph = nx.ego_graph(G, node, radius=n, undirected=True, center=True)
+    subgraph = nx.ego_graph(G.to_undirected(), node, radius=n, undirected=True, center=True)
     return sorted(subgraph.nodes(), key=lambda x: subgraph.degree(x), reverse=True)
 
 
@@ -264,7 +272,7 @@ def find_related_subgraphs(
                 stop_at_semantic_types=stop_at_semantic_types,
                 visited=visited,
                 depth=0,
-                max_depth=3,
+                max_depth=max_depth,
                 current_path=[],
                 top_one_percent_nodes=top_1,
             )
@@ -276,7 +284,7 @@ def find_related_subgraphs(
                 stop_at_semantic_types=None,
                 visited=visited,
                 depth=0,
-                max_depth=3,
+                max_depth=max_depth,
                 current_path=[],
                 top_one_percent_nodes=top_1,
             )
