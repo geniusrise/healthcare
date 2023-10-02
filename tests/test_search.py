@@ -63,7 +63,7 @@ def test_find_semantic_and_adjacent_nodes_compose(loaded_data):
         composed_graph = nx.compose(composed_graph, graph)
 
     # Draw the subgraph
-    draw_subgraph(composed_graph, concept_id_to_concept, f"graphs/{' '.join(nodes)}")
+    draw_subgraph(composed_graph, concept_id_to_concept, f"graphs/adjacent-{' '.join(nodes)}")
     assert composed_graph.number_of_nodes() > len(nodes)
 
 
@@ -73,7 +73,7 @@ def test_find_related_subgraphs(loaded_data):
     nodes = ["chest pain", "shortness of breath"]
 
     # Find related terms based on the user's query
-    subgraphs, _ = find_related_subgraphs(
+    subgraph, _ = find_related_subgraphs(
         nodes,
         G,
         faiss_index,
@@ -82,17 +82,11 @@ def test_find_related_subgraphs(loaded_data):
         concept_id_to_concept,
         cutoff_score=0.1,
         semantic_types="disorder",
+        max_depth=2,
     )
 
-    subgraphs = [x for y in subgraphs for x in y if x.number_of_nodes() > 1]
-    composed_graph = subgraphs[0].copy()
-
-    # Intersect with each subsequent graph
-    for graph in subgraphs[1:]:
-        composed_graph = nx.compose(composed_graph, graph)
-
-    draw_subgraph(composed_graph, concept_id_to_concept, f"graphs/{' '.join(nodes)}")
-    assert len(composed_graph) > 2
+    draw_subgraph(subgraph, concept_id_to_concept, f"graphs/related-subgraphs-{' '.join(nodes)}")
+    assert len(subgraph) > len(nodes)
 
 
 def test_find_semantically_similar_nodes(loaded_data):
