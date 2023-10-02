@@ -6,7 +6,7 @@ import numpy as np
 
 import faiss
 from geniusrise_healthcare.constants import SEMANTIC_TAGS
-from geniusrise_healthcare.util import generate_embeddings
+from geniusrise_healthcare.model import generate_embeddings
 
 log = logging.getLogger(__name__)
 

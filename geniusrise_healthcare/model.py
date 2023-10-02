@@ -1,9 +1,11 @@
 import logging
 import os
-from typing import List, Optional, Tuple, Union, Any
+from typing import List, Optional, Tuple, Union, Any, Dict
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, GPTQConfig
+import numpy as np
+import transformers
+from transformers import AutoModelForCausalLM, AutoTokenizer, GPTQConfig, PreTrainedModel, PreTrainedTokenizer
 
 log = logging.getLogger(__name__)
 
@@ -92,12 +94,15 @@ def quantize_transformer_model_with_autogptq(
 
 def load_huggingface_model(
     model_name: str,
+    model_class_name: str = "AutoModelForCausalLM",
+    tokenizer_class_name: str = "AutoTokenizer",
     use_cuda: bool = False,
     precision: str = "float16",
     quantize: bool = False,
     quantize_bits: int = 8,
     quantize_dataset: str = "c4",
     quantize_save_dir: str = "./quantized_model",
+    device_map: str | Dict = "auto",
     max_memory={0: "24GB"},
     **model_args: Any,
 ) -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
@@ -137,19 +142,22 @@ def load_huggingface_model(
     else:
         raise ValueError("Unsupported precision. Choose from 'float32', 'float16', 'bfloat16'.")
 
+    ModelClass = getattr(transformers, model_class_name)
+    TokenizerClass = getattr(transformers, tokenizer_class_name)
+
     # Load the model and tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(model_name, torch_dtype=torch_dtype)
+    tokenizer = TokenizerClass.from_pretrained(model_name, torch_dtype=torch_dtype)
     quantized_model_path = os.path.join(quantize_save_dir, f"{model_name}_quantized.pth")
 
     # Check if a quantized model exists and should be loaded
     if quantize and os.path.exists(quantized_model_path):
         log.info(f"Loading saved quantized model from {quantize_save_dir} with {model_args}")
-        model = AutoModelForCausalLM.from_pretrained(
+        model = ModelClass.from_pretrained(
             quantize_save_dir,
             torch_dtype=torch_dtype,
             torchscript=True,
             max_memory=max_memory,
-            device_map="auto",
+            device_map=device_map,
             **model_args,
         )
     else:
@@ -169,7 +177,7 @@ def load_huggingface_model(
                 torch_dtype=torch_dtype,
                 torchscript=True,
                 max_memory=max_memory,
-                device_map="auto",
+                device_map=device_map,
                 **model_args,
             )
 
@@ -183,3 +191,49 @@ def load_huggingface_model(
 
     log.debug("Hugging Face model and tokenizer loaded successfully.")
     return model, tokenizer
+
+
+def generate_embeddings(
+    term: str, model: PreTrainedModel, tokenizer: PreTrainedTokenizer, output_key: str = "last_hidden_state"
+) -> np.ndarray:
+    """
+    Generates embeddings for a given term using a model.
+
+    Parameters:
+    - term (str): The term for which to generate the embeddings.
+    - model (PreTrainedModel): The model.
+    - tokenizer (PreTrainedTokenizer): The tokenizer for the model.
+    - output_key (str, optional): The key to use to extract embeddings from the model output.
+                                   Defaults to 'last_hidden_state'.
+
+    Returns:
+    np.ndarray: The generated embeddings.
+    """
+    # Generate inputs
+    inputs = tokenizer(term, return_tensors="pt")
+
+    # Move inputs to the same device as the model
+    inputs = {k: v.to(model.device) for k, v in inputs.items()}
+
+    # Generate outputs
+    with torch.no_grad():  # Deactivate autograd to reduce memory usage
+        outputs = model(**inputs)
+
+    # Extract embeddings
+    if isinstance(outputs, dict):
+        embeddings = outputs.get(output_key, None)
+    elif isinstance(outputs, tuple):
+        embeddings = outputs[0]
+    else:
+        raise ValueError("Unsupported model output type")
+
+    if embeddings is None:
+        raise ValueError(f"Could not find key '{output_key}' in model outputs")
+
+    # Average along the sequence length dimension
+    embeddings = embeddings.mean(dim=1)
+
+    # Move to CPU and convert to NumPy
+    embeddings = embeddings.cpu().numpy()
+
+    return embeddings

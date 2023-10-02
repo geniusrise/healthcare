@@ -7,16 +7,34 @@ from geniusrise_healthcare.model import load_huggingface_model
 from geniusrise_healthcare.search import find_adjacent_nodes, find_related_subgraphs, find_semantically_similar_nodes
 from geniusrise_healthcare.util import draw_subgraph
 
-MODEL = "/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf"
+# MODEL = "/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf"
+# NETWORKX_GRAPH = "./saved-llama-7b/snomed.graph"
+# FAISS_INDEX = "./saved-llama-7b/faiss.index"
+# CONCEPT_ID_TO_CONCEPT = "./saved-llama-7b/concept_id_to_concept.pickle"
+# DESCRIPTION_ID_TO_CONCEPT = "./saved-llama-7b/description_id_to_concept.pickle"
+
+
+MODEL = "bert-base-uncased"
+NETWORKX_GRAPH = "./saved/snomed.graph"
+FAISS_INDEX = "./saved/faiss.index.old"
+CONCEPT_ID_TO_CONCEPT = "./saved/concept_id_to_concept.pickle"
+DESCRIPTION_ID_TO_CONCEPT = "./saved/description_id_to_concept.pickle"
 
 
 @pytest.fixture(scope="module")
 def loaded_data():
-    G = load_networkx_graph("./saved/snomed.graph")
-    faiss_index = load_faiss_index("./saved/faiss.index.old")
-    concept_id_to_concept = load_concept_dict("./saved/concept_id_to_concept.pickle")
-    description_id_to_concept = load_concept_dict("./saved/description_id_to_concept.pickle")
-    model, tokenizer = load_huggingface_model(MODEL)
+    G = load_networkx_graph(NETWORKX_GRAPH)
+    faiss_index = load_faiss_index(FAISS_INDEX)
+    concept_id_to_concept = load_concept_dict(CONCEPT_ID_TO_CONCEPT)
+    description_id_to_concept = load_concept_dict(DESCRIPTION_ID_TO_CONCEPT)
+
+    if MODEL != "bert-base-uncased":
+        model, tokenizer = load_huggingface_model(
+            MODEL, use_cuda=True, device_map=None, precision="float32", model_class_name="AutoModel"
+        )
+    else:
+        tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+        model = AutoModel.from_pretrained("bert-base-uncased")
     return G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model
 
 
@@ -65,13 +83,13 @@ def test_find_related_subgraphs(loaded_data):
         tokenizer,
         concept_id_to_concept,
         cutoff_score=0.1,
-        semantic_type="disorder",
+        semantic_types="disorder",
     )
     assert len(top_subgraphs) > 2
 
 
 def test_find_semantically_similar_nodes(loaded_data):
-    G, faiss_index, concept_id_to_concept, description_id_to_concept = loaded_data
+    G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model = loaded_data
 
     node = "pain in right wrist"
 
