@@ -168,4 +168,5 @@ data/*
 models/*
 graphs/*
 saved/*
+saved-*/*
 faiss
