@@ -12,11 +12,18 @@ from geniusrise_healthcare.util import draw_dag
 QUERY = ["high fever", "back pain", "shivering"]
 SEMANTIC_TYPES = ["disorder"]
 
-MODEL = "/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf"
-NETWORKX_GRAPH = "./saved-llama-7b/snomed.graph"
-FAISS_INDEX = "./saved-llama-7b/faiss.index"
-CONCEPT_ID_TO_CONCEPT = "./saved-llama-7b/concept_id_to_concept.pickle"
-DESCRIPTION_ID_TO_CONCEPT = "./saved-llama-7b/description_id_to_concept.pickle"
+# MODEL = "/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf"
+# NETWORKX_GRAPH = "./saved-llama-7b/snomed.graph"
+# FAISS_INDEX = "./saved-llama-7b/faiss.index"
+# CONCEPT_ID_TO_CONCEPT = "./saved-llama-7b/concept_id_to_concept.pickle"
+# DESCRIPTION_ID_TO_CONCEPT = "./saved-llama-7b/description_id_to_concept.pickle"
+
+
+MODEL = "bert-base-uncased"
+NETWORKX_GRAPH = "./saved/snomed.graph"
+FAISS_INDEX = "./saved/faiss.index.old"
+CONCEPT_ID_TO_CONCEPT = "./saved/concept_id_to_concept.pickle"
+DESCRIPTION_ID_TO_CONCEPT = "./saved/description_id_to_concept.pickle"
 
 
 @pytest.fixture(scope="module")

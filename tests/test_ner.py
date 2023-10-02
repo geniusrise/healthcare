@@ -1,12 +1,13 @@
-from pathlib import Path
+# from pathlib import Path
 from typing import List
 
 import pandas as pd
 import pytest
-from medcat.cat import CAT
-from medcat.cdb import CDB
-from medcat.config import Config
-from spacy.util import load_model_from_path
+
+# from medcat.cat import CAT
+# from medcat.cdb import CDB
+# from medcat.config import Config
+# from spacy.util import load_model_from_path
 
 from geniusrise_healthcare.model import load_huggingface_model
 from geniusrise_healthcare.ner import annotate_snomed
@@ -96,10 +97,9 @@ def test_annotate_snomed_llama(query, loaded_model, test_data):
         type_ids_filter,
         page_size=4096,
         decoding_strategy="generate",
-        max_length=len(query) + 100,
         temperature=0.7,
         do_sample=True,
-        max_new_tokens=100,
+        max_new_tokens=15,
     )
     # assert result == expected
     assert 1 == 1

@@ -1,13 +1,14 @@
 import pytest
-import pandas as pd
 
 from geniusrise_healthcare.model import load_huggingface_model
 from geniusrise_healthcare.qa import generate_follow_up_questions
 
 
 # MODEL = "/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf"
-MODEL = "/run/media/ixaxaar/hynix_2tb_2/Llama-2-13B-GPTQ"
+# MODEL = "/run/media/ixaxaar/hynix_2tb_2/Llama-2-13B-GPTQ"
+# MODEL = "/run/media/ixaxaar/hynix_2tb_2/Wizard-Vicuna-30B-Uncensored-GPTQ"
 # MODEL = "/run/media/ixaxaar/hynix_2tb_2/WizardLM-Uncensored-Falcon-40B-GPTQ"
+MODEL = "/run/media/ixaxaar/hynix_2tb_2/CodeLlama-34B-Python-GPTQ"
 
 # Test data: list of symptoms and diseases
 test_conditions = [
@@ -43,15 +44,13 @@ def test_generate_follow_up_questions(conditions, loaded_model):
         tokenizer,
         model,
         conditions,
-        page_size=4096,
         decoding_strategy="generate",
-        max_length=4096,
         temperature=0.7,
         do_sample=True,
         max_new_tokens=100,
     )
 
     # Validate the result
-    # assert result[0]["conditions"] == conditions
-    # assert isinstance(result[0]["follow_up_questions"], list)
-    # assert len(result[0]["follow_up_questions"]) > 0  # Assuming that at least one question should be generated
+    assert result["conditions"] == conditions
+    assert isinstance(result["follow_up_questions"], list)
+    assert len(result["follow_up_questions"]) == len(conditions)

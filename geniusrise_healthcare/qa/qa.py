@@ -1,8 +1,8 @@
 import logging
 import re
 from typing import Any, Dict, List, Union
+import ast
 
-import pandas as pd
 import torch
 from transformers import AutoTokenizer, GenerationMixin
 
@@ -20,17 +20,15 @@ def extract(text: str) -> List[str]:
     - List[str]: A list of extracted follow-up questions.
     """
     # Regular expression pattern to match the array of follow-up questions
-    pattern = r"Here is an array of follow up questions:\n```python\n\[(.*?)\]\n```"
+    pattern = r"Here is an array of [0-9]* follow up questions:\n```python\n\[(.*?)\]\n```"
     match = re.search(pattern, text, re.DOTALL)
     if match:
         question_list_str = match.group(1)
-        question_list = question_list_str.split(", ")
-        question_list = [x.strip('"').strip("'") for x in question_list]
-        return question_list
+        return list(ast.literal_eval(question_list_str))
     return []
 
 
-def prompt(**kwargs: Any) -> str:
+def prompt(conditions: List[str]) -> str:
     """
     Generates a prompt asking for follow-up questions based on symptoms and diseases.
 
@@ -40,21 +38,26 @@ def prompt(**kwargs: Any) -> str:
     Returns:
     - str: A formatted prompt string asking for follow-up questions.
     """
+    num_conditions = len(conditions)
+    _conditions = '["{cond}"]'.format(cond='", "'.join(conditions))
+
     return """
-Given the list of symptoms and diseases below, we need to generate a set of follow-up questions.
-These questions should be easy for a patient to understand and should aim to gather more detailed information about each symptom or condition. The goal is to assist healthcare professionals in making a more accurate pre-clinical analysis.
+Given the list of symptoms and diseases below, your task is to generate a set of follow-up questions to ask the patient. These questions should help healthcare professionals gather more detailed information for a more accurate pre-clinical analysis. Please adhere to the following guidelines:
+
+1. Address the patient in the first person.
+2. Generate questions that are easy for a patient to understand; avoid medical jargon.
+3. Limit the questions to those that are directly relevant to the listed symptoms and diseases.
+4. Do not infer or assume any conditions not listed; stick to the provided list.
 
 List of Symptoms and Diseases:
 ```python
 conditions = {conditions}
 ```
 
-Please generate a list of five follow-up questions that can be asked to the patient to get more details about each listed symptom or disease. The questions should be clear, concise, and non-medical jargon.
-
-Here is an array of follow up questions:
+Here is an array of {num_conditions} follow up questions:
 ```python
 [\"""".format(
-        **kwargs
+        conditions=_conditions, num_conditions=5 if num_conditions > 5 else num_conditions
     )
 
 
@@ -62,7 +65,6 @@ def generate_follow_up_questions(
     tokenizer: AutoTokenizer,
     model: GenerationMixin,
     data: List[str],
-    page_size: int = 1024,
     max_iterations: int = 1024,
     decoding_strategy: str = "generate",
     **generation_params: Any,
@@ -121,10 +123,9 @@ def generate_follow_up_questions(
     }
 
     try:
-        conditions = '["{cond}"]'.format(cond='", "'.join(data))
-        log.info(f"Generating follow-up questions for document {conditions}")
+        log.info(f"Generating follow-up questions for document {data}")
 
-        prompt_text = prompt(conditions=conditions)
+        prompt_text = prompt(conditions=data)
         inputs = tokenizer(prompt_text, return_tensors="pt")
 
         if torch.cuda.is_available():
@@ -142,7 +143,7 @@ def generate_follow_up_questions(
         follow_up_questions = extract(generated_text)
         log.info(f"Generated follow-up questions: {follow_up_questions}")
 
-        return {"conditions": conditions, "follow_up_questions": follow_up_questions}
+        return {"conditions": data, "follow_up_questions": follow_up_questions}
 
     except Exception as e:
         raise ValueError(f"An error occurred: {e}")
