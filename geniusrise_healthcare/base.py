@@ -1,161 +1,271 @@
-# import logging
-# from transformers import AutoConfig
-# from typing import Any, Type, Optional
-# from geniusrise_healthcare.io import (
-#     save_concept_dict,
-#     save_networkx_graph,
-#     save_faiss_index,
-# )
-# from geniusrise_healthcare.load import (
-#     load_snomed_into_networkx,
-#     unzip_snomed_ct,
-# )
-# import faiss
+from typing import List, Dict, Any
+import pandas as pd
+import networkx as nx
+import faiss  # type: ignore
+from transformers import AutoTokenizer, GenerationMixin
 
-# log = logging.getLogger(__name__)
+from geniusrise_healthcare.ner import annotate_snomed
+from geniusrise_healthcare.search import find_adjacent_nodes, find_semantically_similar_nodes
+from geniusrise_healthcare.qa import generate_follow_up_questions
+from geniusrise_healthcare.model import generate_embeddings
+from geniusrise_healthcare.util import draw_subgraph
 
 
-# class SnomedTagger:
-#     cat: CAT
+def generate_follow_up_questions_from_input(
+    user_input: str,
+    G: nx.DiGraph,
+    faiss_index: faiss.IndexIDMap,  # type: ignore
+    tokenizer: AutoTokenizer,
+    model: GenerationMixin,
+    ner_model: Any,
+    ner_tokenizer: Any,
+    concept_id_to_concept: dict,
+    type_ids_filter: List[str],
+    semantic_similarity_cutoff: float = 0.1,
+    graph_search_depth: int = 1,
+    graph_search_top_n: int = 6,
+    max_depth: int = 3,
+    decoding_strategy: str = "generate",
+    **generation_params: Any,
+) -> Dict[str, List[str]]:
+    """
+    Generate follow-up questions based on user input.
 
-#     def __init__(self, networkx_path: str, faiss_path: str, type_id_dict_path: str):
-#         """
-#         Initialize the SnomedTagger class.
+    Parameters:
+    - user_input (str): The user's input text.
+    - G (nx.DiGraph): The NetworkX graph.
+    - faiss_index (faiss.IndexIDMap): The FAISS index.
+    - tokenizer (AutoTokenizer): The Hugging Face tokenizer instance.
+    - model (GenerationMixin): The Hugging Face model instance.
+    - concept_id_to_concept (dict): Mapping from concept IDs to concepts.
+    - type_ids_filter (List[str]): List of type IDs to filter annotations.
+    - semantic_similarity_cutoff (float, optional): The similarity score below which nodes will be ignored.
+    - max_depth (int, optional): Maximum depth for recursive search.
+    - decoding_strategy (str, optional): The decoding strategy to use for text generation.
+    - **generation_params (Any): Additional parameters for text generation.
 
-#         Parameters:
-#         - networkx_path (str): Path to the saved NetworkX graph.
-#         - faiss_path (str): Path to the saved FAISS index.
-#         - type_id_dict_path (str): Path to the saved description_id_to_concept dictionary.
-#         - cat (CAT): The MedCAT Clinical Annotation Tool instance.
-#         """
-#         self.G = load_networkx_graph(networkx_path)
-#         self.faiss_index = load_faiss_index(faiss_path)
-#         self.description_id_to_concept = load_concept_dict(type_id_dict_path)
+    Returns:
+    - Dict[str, List[str]]: A dictionary containing the generated follow-up questions.
+    """
 
-#     def tag_and_find_nodes(
-#         self,
-#         document_path: str,
-#         document_type: str,
-#         type_ids_filter: List[str],
-#         cutoff_score: float,
-#         n_hops: int,
-#         cat_model_path: str,
-#     ) -> Dict[str, Any]:
-#         """
-#         Tags the document and finds the tag nodes, semantic and adjacent nodes from SNOMED.
+    # Step 1: Extract symptoms and diseases from user input
+    data = pd.DataFrame({"text": [user_input]})
+    annotations = annotate_snomed("llm", tokenizer, model, data, type_ids_filter)
+    symptoms_and_diseases = [
+        x["snomed"] for x in annotations[0]["annotations"]
+    ]  # Assuming the first document contains the relevant data
 
-#         Parameters:
-#         - document_path (str): Path to the document.
-#         - document_type (str): Type of the document (pdf, txt, doc, docx, odf).
-#         - type_ids_filter (List[str]): List of type IDs to filter annotations.
-#         - cutoff_score (float): The similarity score below which nodes will be ignored.
-#         - n_hops (int): The number of hops to consider for adjacency.
-#         - cat_model_path (str): Path to the MedCAT model pack
+    # Step 2: Search for semantically similar nodes in snomed
+    topk_subgraphs: List[nx.DiGraph] = []
+    subgraphs: List[nx.DiGraph] = []
+    snomed_concepts = []
+    for node in symptoms_and_diseases:
+        # Generate embeddings
+        embeddings = generate_embeddings(term=node, tokenizer=ner_tokenizer, model=ner_model)
+        closest_nodes = find_semantically_similar_nodes(
+            faiss_index=faiss_index, embedding=embeddings, cutoff_score=semantic_similarity_cutoff
+        )
 
-#         Returns:
-#         Dict[str, Any]: Result of the tagging and node finding process.
-#         """
-#         # Load CAT
-#         self.cat = CAT.load_model_pack(cat_model_path)
+        if len(closest_nodes) > 0:
+            snomed_concepts.extend([int(x[0]) for x in closest_nodes])
+            neighbors = find_adjacent_nodes(
+                source_nodes=[int(x[0]) for x in closest_nodes], G=G, n=graph_search_depth, top_n=graph_search_top_n
+            )
+            all_neighbors = find_adjacent_nodes(
+                source_nodes=[int(x[0]) for x in closest_nodes], G=G, n=graph_search_depth, top_n=0
+            )
+            topk_subgraphs.extend(neighbors)
+            subgraphs.extend(all_neighbors)
 
-#         # Read the document based on its type
-#         if document_type == "pdf":
-#             with open(document_path, "rb") as f:
-#                 reader = PdfFileReader(f)
-#                 text = " ".join([reader.getPage(i).extractText() for i in range(reader.getNumPages())])
-#         elif document_type == "txt":
-#             with open(document_path, "r") as f:
-#                 text = f.read()
-#         elif document_type == "doc":
-#             text = textract.process(document_path, method="pythoncom_wv2").decode()
-#         elif document_type == "docx":
-#             doc = docx.Document(document_path)
-#             text = " ".join([p.text for p in doc.paragraphs])
-#         elif document_type == "odf":
-#             textdoc = odf_text.TextDocument(document_path)
-#             text = teletype.extractText(textdoc.body)
-#         else:
-#             logging.error(f"Unsupported document type: {document_type}")
-#             return {"error": "Unsupported document type"}
+    topk_subgraphs = [x for x in topk_subgraphs if x.number_of_nodes() > 1]
 
-#         # Create a DataFrame for the document
-#         df = pd.DataFrame({"text": [text]})
+    # compose all neighbors into one graph to display the entire network
+    composed_graph = subgraphs[0].copy()
+    for graph in subgraphs[1:]:
+        composed_graph = nx.compose(composed_graph, graph)
+    draw_subgraph(
+        subgraph=composed_graph,
+        concept_id_to_concept=concept_id_to_concept,
+        save_location=f"graphs/step2-{' '.join(symptoms_and_diseases)}",
+        # highlight_nodes=snomed_concepts,
+    )
 
-#         # Annotate the text with SNOMED IDs
-#         annotations = annotate_snomed(self.cat, df, type_ids_filter)
+    # Step 3: Generate follow-up questions for each subgraph
+    all_follow_up_questions = []
+    for subgraph in topk_subgraphs:
+        related_nodes = list(subgraph.nodes())  # type: ignore
+        conditions = [concept_id_to_concept.get(str(node), "0") for node in related_nodes]
+        follow_up_questions = generate_follow_up_questions(
+            tokenizer=tokenizer,
+            model=model,
+            data=conditions,
+            decoding_strategy=decoding_strategy,
+            **generation_params,
+        )
+        all_follow_up_questions.extend(follow_up_questions["follow_up_questions"])
 
-#         # Initialize result dictionary
-#         result: dict = {"annotations": annotations}
-
-#         # Find semantic and adjacent nodes for each annotation
-#         for doc_id, doc_data in annotations.items():
-#             for annotation in doc_data["annotations"]:
-#                 cui: str = annotation["cui"]  # type: ignore
-#                 closest_nodes = find_semantically_similar_nodes(self.faiss_index, self.G, cui, cutoff_score)
-#                 semantic_and_adjacent, semantic_and_not_adjacent = find_semantic_and_adjacent_nodes(
-#                     cui, [node[0] for node in closest_nodes], self.G, n_hops
-#                 )
-
-#                 # Add to result
-#                 result.setdefault("semantic_and_adjacent", []).append(semantic_and_adjacent)
-#                 result.setdefault("semantic_and_not_adjacent", []).append(semantic_and_not_adjacent)
-
-#         return result
+    return {"follow_up_questions": all_follow_up_questions}
 
 
-# class SnomedProcessor:
-#     @staticmethod
-#     def load_and_save_snomed(
-#         snomed_zip_path: str,
-#         snomed_extract_path: str,
-#         networkx_save_path: str,
-#         faiss_save_path: str,
-#         type_id_dict_save_path: str,
-#         model_dimensions: int = 768,
-#         tokenizer_class_name: str = "AutoTokenizer",
-#         model_class_name: str = "AutoModel",
-#         config_class_name: str = "AutoConfig",
-#         model_name: str = "bert-base-uncased",
-#     ) -> None:
-#         """
-#         Load SNOMED into NetworkX and FAISS, and save all three (NetworkX, FAISS, and type_id_dict) to given locations.
+def generate_follow_up_questions_from_input_no_snomed(
+    user_input: str,
+    G: nx.DiGraph,
+    faiss_index: faiss.IndexIDMap,  # type: ignore
+    tokenizer: AutoTokenizer,
+    model: GenerationMixin,
+    ner_model: Any,
+    ner_tokenizer: Any,
+    concept_id_to_concept: dict,
+    type_ids_filter: List[str],
+    semantic_similarity_cutoff: float = 0.1,
+    graph_search_depth: int = 1,
+    graph_search_top_n: int = 6,
+    max_depth: int = 3,
+    decoding_strategy: str = "generate",
+    **generation_params: Any,
+) -> Dict[str, List[str]]:
+    """
+    Generate follow-up questions based on user input.
 
-#         Parameters:
-#         - snomed_zip_path (str): Path to the SNOMED zip file.
-#         - snomed_extract_path (str): Directory where SNOMED will be extracted.
-#         - networkx_save_path (str): Path where the NetworkX graph will be saved.
-#         - faiss_save_path (str): Path where the FAISS index will be saved.
-#         - type_id_dict_save_path (str): Path where the description_id_to_concept dictionary will be saved.
-#         - model_dimensions (int): The model embedding dimensions, defaults to 768 for bert-base-uncased.
-#         - tokenizer_class_name (str): Class name of the tokenizer to use.
-#         - model_class_name (str): Class name of the model to use.
-#         - config_class_name (str): Class name of the config to use.
-#         - model_name (str): Pretrained model name to load.
+    Parameters:
+    - user_input (str): The user's input text.
+    - G (nx.DiGraph): The NetworkX graph.
+    - faiss_index (faiss.IndexIDMap): The FAISS index.
+    - tokenizer (AutoTokenizer): The Hugging Face tokenizer instance.
+    - model (GenerationMixin): The Hugging Face model instance.
+    - concept_id_to_concept (dict): Mapping from concept IDs to concepts.
+    - type_ids_filter (List[str]): List of type IDs to filter annotations.
+    - semantic_similarity_cutoff (float, optional): The similarity score below which nodes will be ignored.
+    - max_depth (int, optional): Maximum depth for recursive search.
+    - decoding_strategy (str, optional): The decoding strategy to use for text generation.
+    - **generation_params (Any): Additional parameters for text generation.
 
-#         Returns:
-#         None
-#         """
-#         # Unzip SNOMED
-#         unzip_snomed_ct(snomed_zip_path, snomed_extract_path)
+    Returns:
+    - Dict[str, List[str]]: A dictionary containing the generated follow-up questions.
+    """
 
-#         # Create a new FAISS index
-#         faiss_index = faiss.IndexIDMap(faiss.IndexFlatL2(model_dimensions))  # type: ignore
+    # Step 1: Extract symptoms and diseases from user input
+    data = pd.DataFrame({"text": [user_input]})
+    annotations = annotate_snomed("llm", tokenizer, model, data, type_ids_filter)
+    symptoms_and_diseases = [
+        x["snomed"] for x in annotations[0]["annotations"]
+    ]  # Assuming the first document contains the relevant data
 
-#         # Dynamically load tokenizer, model, and config
-#         TokenizerClass = getattr(__import__("transformers", fromlist=[tokenizer_class_name]), tokenizer_class_name)
-#         ModelClass = getattr(__import__("transformers", fromlist=[model_class_name]), model_class_name)
-#         ConfigClass = getattr(__import__("transformers", fromlist=[config_class_name]), config_class_name)
+    # Step 2: Search for semantically similar nodes in snomed
+    subgraphs: List[nx.DiGraph] = []
+    snomed_concepts = []
+    for node in symptoms_and_diseases:
+        # Generate embeddings
+        embeddings = generate_embeddings(term=node, tokenizer=ner_tokenizer, model=ner_model)
+        closest_nodes = find_semantically_similar_nodes(
+            faiss_index=faiss_index, embedding=embeddings, cutoff_score=semantic_similarity_cutoff
+        )
 
-#         tokenizer = TokenizerClass.from_pretrained(model_name)
-#         config = ConfigClass.from_pretrained(model_name)
-#         model = ModelClass.from_pretrained(model_name, config=config)
+        if len(closest_nodes) > 0:
+            snomed_concepts.append([int(x[0]) for x in closest_nodes])
+            all_neighbors = find_adjacent_nodes(
+                source_nodes=[int(x[0]) for x in closest_nodes], G=G, n=graph_search_depth, top_n=0
+            )
+            subgraphs.extend(all_neighbors)
 
-#         # Load SNOMED into NetworkX and FAISS
-#         G, description_id_to_concept, concept_id_to_concept = load_snomed_into_networkx(
-#             snomed_extract_path, tokenizer, model, faiss_index
-#         )
+    # compose all neighbors into one graph to display the entire network
+    composed_graph = subgraphs[0].copy()
+    for graph in subgraphs[1:]:
+        composed_graph = nx.compose(composed_graph, graph)
+    draw_subgraph(
+        subgraph=composed_graph,
+        concept_id_to_concept=concept_id_to_concept,
+        save_location=f"graphs/step2-{' '.join(symptoms_and_diseases)}",
+        highlight_nodes=snomed_concepts,
+    )
 
-#         # Save NetworkX, FAISS, and type_id_dict
-#         save_networkx_graph(G, networkx_save_path)
-#         save_faiss_index(faiss_index, faiss_save_path)
-#         save_concept_dict(description_id_to_concept, type_id_dict_save_path)
+    # Step 3: Generate follow-up questions for each subgraph
+    all_follow_up_questions = []
+    for _conditions in snomed_concepts:
+        conditions = [concept_id_to_concept.get(str(node), "0") for node in _conditions]
+        follow_up_questions = generate_follow_up_questions(
+            tokenizer=tokenizer,
+            model=model,
+            data=conditions,
+            decoding_strategy=decoding_strategy,
+            **generation_params,
+        )
+        all_follow_up_questions.extend(follow_up_questions["follow_up_questions"])
+
+    all_follow_up_questions = list(set(all_follow_up_questions))
+
+    return {"follow_up_questions": all_follow_up_questions}
+
+
+def follow_up(
+    user_input: str,
+    G: nx.DiGraph,
+    faiss_index: faiss.IndexIDMap,  # type: ignore
+    tokenizer: AutoTokenizer,
+    model: GenerationMixin,
+    ner_model: Any,
+    ner_tokenizer: Any,
+    concept_id_to_concept: dict,
+    type_ids_filter: List[str],
+    semantic_similarity_cutoff: float = 0.1,
+    graph_search_depth: int = 1,
+    graph_search_top_n: int = 6,
+    max_depth: int = 3,
+    decoding_strategy: str = "generate",
+    **generation_params: Any,
+) -> Dict[str, List[str]]:
+    """
+    Generate follow-up questions based on user input.
+
+    Parameters:
+    - user_input (str): The user's input text.
+    - G (nx.DiGraph): The NetworkX graph.
+    - faiss_index (faiss.IndexIDMap): The FAISS index.
+    - tokenizer (AutoTokenizer): The Hugging Face tokenizer instance.
+    - model (GenerationMixin): The Hugging Face model instance.
+    - concept_id_to_concept (dict): Mapping from concept IDs to concepts.
+    - type_ids_filter (List[str]): List of type IDs to filter annotations.
+    - semantic_similarity_cutoff (float, optional): The similarity score below which nodes will be ignored.
+    - max_depth (int, optional): Maximum depth for recursive search.
+    - decoding_strategy (str, optional): The decoding strategy to use for text generation.
+    - **generation_params (Any): Additional parameters for text generation.
+
+    Returns:
+    - Dict[str, List[str]]: A dictionary containing the generated follow-up questions.
+    """
+
+    # Step 1: Extract symptoms and diseases from user input
+    data = pd.DataFrame({"text": [user_input]})
+    annotations = annotate_snomed("llm", tokenizer, model, data, type_ids_filter)
+    symptoms_and_diseases = [
+        x["snomed"] for x in annotations[0]["annotations"]
+    ]  # Assuming the first document contains the relevant data
+
+    # Step 2: Search for semantically similar nodes in snomed
+    snomed_concepts = []
+    for node in symptoms_and_diseases:
+        # Generate embeddings
+        embeddings = generate_embeddings(term=node, tokenizer=ner_tokenizer, model=ner_model)
+        closest_nodes = find_semantically_similar_nodes(
+            faiss_index=faiss_index, embedding=embeddings, cutoff_score=semantic_similarity_cutoff
+        )
+
+        if len(closest_nodes) > 0:
+            snomed_concepts.append([int(x[0]) for x in closest_nodes])
+
+    # Step 3: Generate follow-up questions for each subgraph
+    all_follow_up_questions = []
+    for _conditions in snomed_concepts:
+        conditions = [concept_id_to_concept.get(str(node), "0") for node in _conditions]
+        follow_up_questions = generate_follow_up_questions(
+            tokenizer=tokenizer,
+            model=model,
+            data=conditions,
+            decoding_strategy=decoding_strategy,
+            **generation_params,
+        )
+        all_follow_up_questions.extend(follow_up_questions["follow_up_questions"])
+
+    all_follow_up_questions = list(set(all_follow_up_questions))
+
+    return {"follow_up_questions": all_follow_up_questions}

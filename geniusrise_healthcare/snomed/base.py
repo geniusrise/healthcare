@@ -40,16 +40,16 @@ def load_snomed_into_networkx(
     refsets_file = os.path.join(extract_path, f"sct2_sRefset_OWLExpressionSnapshot_{version}.txt")
 
     process_concept_file(
-        concept_file,
-        G,
-        description_id_to_concept,
-        concept_id_to_concept,
-        tokenizer,
-        model,
-        faiss_index,
-        use_cuda,
-        batch_size,
-        skip_embedding,
+        concept_file=concept_file,
+        G=G,
+        description_id_to_concept=description_id_to_concept,
+        concept_id_to_concept=concept_id_to_concept,
+        tokenizer=tokenizer,
+        model=model,
+        faiss_index=faiss_index,
+        use_cuda=use_cuda,
+        batch_size=batch_size,
+        skip_embedding=skip_embedding,
     )
 
     process_relationship_file(relationship_file, G)

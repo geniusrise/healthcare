@@ -42,12 +42,15 @@ def prompt(conditions: List[str]) -> str:
     _conditions = '["{cond}"]'.format(cond='", "'.join(conditions))
 
     return """
-Given the list of symptoms and diseases below, your task is to generate a set of follow-up questions to ask the patient. These questions should help healthcare professionals gather more detailed information for a more accurate pre-clinical analysis. Please adhere to the following guidelines:
+Given the list of symptoms and diseases below, your task is to generate a set of follow-up questions to ask the patient.
+These questions should help healthcare professionals gather more detailed information for a more accurate pre-clinical analysis.
+Please adhere to the following guidelines:
 
 1. Address the patient in the first person.
 2. Generate questions that are easy for a patient to understand; avoid medical jargon.
 3. Limit the questions to those that are directly relevant to the listed symptoms and diseases.
 4. Do not infer or assume any conditions not listed; stick to the provided list.
+5. Dont ask questions that the patient has already told you.
 
 List of Symptoms and Diseases:
 ```python
@@ -68,7 +71,7 @@ def generate_follow_up_questions(
     max_iterations: int = 1024,
     decoding_strategy: str = "generate",
     **generation_params: Any,
-) -> Dict[str, Union[str, List[str]]]:
+) -> Dict[str, List[str]]:
     """
     Generate follow-up questions using a Hugging Face model and tokenizer.
 

@@ -155,13 +155,13 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
             color=text_color,
         )
 
-    # Label edges
-    edge_labels = {}
-    for u, v, data in subgraph.edges(data=True):
-        relationship_type = concept_id_to_concept.get(str(data.get("relationship_type", "")), "")
-        relationship_group = concept_id_to_concept.get(str(data.get("relationship_group", "")), "")
-        edge_labels[(u, v)] = f"{relationship_type}\n{relationship_group}"
+    # # Label edges
+    # edge_labels = {}
+    # for u, v, data in subgraph.edges(data=True):
+    #     relationship_type = concept_id_to_concept.get(str(data.get("relationship_type", "")), "")
+    #     relationship_group = concept_id_to_concept.get(str(data.get("relationship_group", "")), "")
+    #     edge_labels[(u, v)] = f"{relationship_type}\n{relationship_group}"
 
-    nx.draw_networkx_edge_labels(subgraph, pos, edge_labels=edge_labels, font_size=3.0)
+    # nx.draw_networkx_edge_labels(subgraph, pos, edge_labels=edge_labels, font_size=3.0)
 
     plt.savefig(f"{save_location}.png", bbox_inches="tight", pad_inches=0.1)

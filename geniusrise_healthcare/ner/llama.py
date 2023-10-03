@@ -47,12 +47,6 @@ def prompt(**kwargs: Any) -> str:
     return """
 Given the user input below, identify the top 3 specific symptoms and diseases mentioned. Please note the following guidelines:
 
-- The user input is as follows:
-
-```python
-input = "{input}"
-```
-
 - Each term may contain multiple words.
 - Limit the output to only the top 3 most relevant terms.
 - Dont include terms not part of the input.
@@ -60,9 +54,13 @@ input = "{input}"
 - Avoid generic terms like "symptom" or "disease".
 - Stop output after the code block is complete, dont output anything else apart from the 3 symptoms and diseases.
 
-Please provide an array containing these top 3 symptoms and diseases.
+- The user input is as follows:
 
-Here is the requested array:
+```python
+input = "{input}"
+```
+
+Here is the requested array of at max 3 symptoms and diseases referred by the patient:
 
 ```python
 [\"""".format(

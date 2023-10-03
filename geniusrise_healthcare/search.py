@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 
 def find_adjacent_nodes(
-    source_nodes: List[int], G: nx.DiGraph, n: int = 1, top_n: int = 5, undirected: bool = False
+    source_nodes: List[int], G: nx.DiGraph, n: int = 1, top_n: int = 0, undirected: bool = False
 ) -> List[nx.DiGraph]:
     """
     Finds the subset of nodes that are adjacent to the source nodes within n hops.
@@ -38,17 +38,19 @@ def find_adjacent_nodes(
         else:
             subgraph = nx.ego_graph(G.reverse(), source_node, radius=n, undirected=undirected, center=True)
 
-        # Sort nodes by degree and keep only the top_n nodes along with the source node
-        sorted_nodes = sorted(subgraph.nodes(), key=lambda x: subgraph.degree(x), reverse=True)
-        top_nodes = sorted_nodes[:top_n] if top_n < len(sorted_nodes) else sorted_nodes
+        if top_n > 0:
+            # Sort nodes by degree and keep only the top_n nodes along with the source node
+            sorted_nodes = sorted(subgraph.nodes(), key=lambda x: subgraph.degree(x), reverse=True)
+            top_nodes = sorted_nodes[:top_n] if top_n < len(sorted_nodes) else sorted_nodes
 
-        # Always include the source node
-        if source_node not in top_nodes:
-            top_nodes.append(source_node)
-
-        # Create a new subgraph with only the top_n nodes and the source node
-        filtered_subgraph = subgraph.subgraph(top_nodes).copy()
-        subgraphs.append(filtered_subgraph)
+            # Always include the source node
+            if source_node not in top_nodes:
+                top_nodes.append(source_node)
+            # Create a new subgraph with only the top_n nodes and the source node
+            filtered_subgraph = subgraph.subgraph(top_nodes).copy()
+            subgraphs.append(filtered_subgraph)
+        else:
+            subgraphs.append(subgraph)
 
     return subgraphs
 

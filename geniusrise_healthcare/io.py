@@ -1,6 +1,6 @@
 import logging
 import pickle
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 
 import networkx as nx
 
@@ -23,6 +23,109 @@ def load_networkx_graph(file_path: str) -> nx.DiGraph:
     with open(file_path, "rb") as f:
         G = pickle.load(f)
     logging.debug(f"Loaded {G.number_of_nodes()} nodes and {G.number_of_edges()} edges into the graph.")
+    return G
+
+
+def load_networkx_graph_with_pagerank(file_path: str) -> nx.DiGraph:
+    """
+    Loads a NetworkX graph from a file and calculates PageRank for each node.
+
+    Parameters:
+    - file_path (str): The file path from which to load the graph.
+
+    Returns:
+    nx.DiGraph: The loaded NetworkX graph with PageRank as node attributes.
+    """
+    logging.info(f"Loading NetworkX graph from {file_path}")
+    with open(file_path, "rb") as f:
+        G = pickle.load(f)
+
+    logging.debug(f"Loaded {G.number_of_nodes()} nodes and {G.number_of_edges()} edges into the graph.")
+
+    logging.info("Calculating PageRank for nodes in the graph.")
+    pagerank_dict = nx.pagerank(G)
+
+    # Storing pagerank values as node attributes
+    for node, rank in pagerank_dict.items():
+        G.nodes[node]["pagerank"] = rank
+
+    logging.debug("PageRank calculation complete and values stored as node attributes.")
+
+    return G
+
+
+def load_networkx_graph_with_pagerank_snomed(
+    file_path: str,
+    alpha: float = 0.85,
+    personalization: Optional[dict] = None,
+    max_iter: int = 100,
+    tol: float = 1.0e-6,
+    nstart: Optional[dict] = None,
+    weight_key: str = "weight",
+    dangling: Optional[dict] = None,
+) -> nx.DiGraph:
+    """
+    Loads a NetworkX graph from a file and calculates PageRank for each node.
+
+    Parameters:
+    - file_path (str): The file path from which to load the graph.
+    - alpha (float): The damping parameter for PageRank, default is 0.85.
+    - personalization (dict): The "personalization vector" consisting of a dictionary with a key for every graph node
+                              and nonzero personalization value for each node.
+    - max_iter (int): Maximum number of iterations in power method eigenvalue solver.
+    - tol (float): Error tolerance used to check convergence in power method solver.
+    - nstart (dict): Starting value of PageRank iteration for each node.
+    - weight_key (str): Edge data key to use as weight. If None weights are set to 1.
+    - dangling (dict): The outedges to be assigned to any “dangling” nodes, i.e., nodes without any outedges.
+                       The dict key is the node the outedge points to and the dict value is the weight of that outedge.
+
+    Returns:
+    nx.DiGraph: The loaded NetworkX graph with an additional node attribute 'pagerank' storing the PageRank value.
+    """
+    logging.info(f"Loading NetworkX graph from {file_path}")
+    with open(file_path, "rb") as f:
+        G = pickle.load(f)
+    logging.debug(f"Loaded {G.number_of_nodes()} nodes and {G.number_of_edges()} edges into the graph.")
+
+    # Calculate PageRank
+    logging.info("Calculating PageRank for the graph.")
+    pagerank = nx.pagerank(
+        G,
+        alpha=alpha,
+        personalization=personalization,
+        max_iter=max_iter,
+        tol=tol,
+        nstart=nstart,
+        weight=weight_key,
+        dangling=dangling,
+    )
+
+    # Store PageRank values as node attributes
+    nx.set_node_attributes(G, pagerank, "pagerank")
+    logging.debug("PageRank calculation completed and values stored as node attributes.")
+
+    # Special handling for SNOMED CT relationships based on the Graph Inference model by Bevan Koopman
+    # Define relationship type weightings
+    relationship_weights = {
+        "is a": 1.0,
+        "active ingredient": 1.0,
+        "definitional manifestation": 0.8,
+        "associated finding": 0.6,
+        "severity": 0.2,
+        "laterality": 0.2,
+    }
+
+    # Update PageRank values based on relationship type weightings
+    for node in G.nodes():
+        weighted_pagerank = G.nodes[node]["pagerank"]
+        for neighbor in G.neighbors(node):
+            edge_type = G[node][neighbor].get("relationship_type", "")
+            weight = relationship_weights.get(edge_type, 1.0)  # type: ignore
+            weighted_pagerank *= weight
+        G.nodes[node]["weighted_pagerank"] = weighted_pagerank
+
+    logging.debug("Weighted PageRank calculation based on SNOMED CT relationships completed.")
+
     return G
 
 
