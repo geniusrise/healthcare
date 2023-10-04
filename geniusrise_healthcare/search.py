@@ -59,12 +59,11 @@ def find_semantically_similar_nodes(
     faiss_index: faiss.IndexIDMap, embedding: np.ndarray, cutoff_score: float  # type: ignore
 ) -> List[Tuple[str, float]]:
     """
-    Finds the closest nodes to a given node in a NetworkX graph using a FAISS index.
+    Finds the closest nodes to a given node embedding using a FAISS index.
 
     Parameters:
     - faiss_index (faiss.IndexIDMap): The FAISS index containing the embeddings.
-    - G (nx.DiGraph): The NetworkX graph containing SNOMED-CT data.
-    - node (np.ndarray): The vector embedding for which to find the closest nodes.
+    - embedding (np.ndarray): The vector embedding for which to find the closest nodes.
     - cutoff_score (float): The similarity score below which nodes will be ignored.
 
     Returns:
@@ -239,10 +238,14 @@ def find_related_subgraphs(
     - faiss_index (faiss.IndexIDMap): The FAISS index.
     - model: The model for generating embeddings.
     - tokenizer: The tokenizer for the model.
-    - max_depth (int): Maximum depth for recursive search.
+    - concept_id_to_concept (dict): Dictionary mapping concept IDs to their corresponding concepts.
+    - cutoff_score (float, optional): Minimum similarity score to consider a node as similar. Default is 0.1.
+    - semantic_types (Union[None, str, List[str]], optional): The semantic types to collect. Default is None.
+    - stop_at_semantic_types (Union[None, str, List[str]], optional): The semantic types where the search should stop. Default is None.
+    - max_depth (int, optional): Maximum depth for recursive search. Default is 3.
 
     Returns:
-    nx.Graph: A subgraph containing nodes of the specified semantic types.
+    Tuple[nx.Graph, List[int]]: A tuple containing the resulting subgraph and a list of semantically similar nodes.
     """
     top_1 = calculate_top_one_percent_nodes(G)
     semantically_similar_nodes = []

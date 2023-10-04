@@ -33,7 +33,7 @@ def prompt(conditions: List[str]) -> str:
     Generates a prompt asking for follow-up questions based on symptoms and diseases.
 
     Parameters:
-    - **kwargs (Any): Keyword arguments that can be used to format the prompt string.
+    - conditions (List[str]): List of conditions or symptoms to generate questions for.
 
     Returns:
     - str: A formatted prompt string asking for follow-up questions.
@@ -79,7 +79,6 @@ def generate_follow_up_questions(
     - tokenizer (AutoTokenizer): The Hugging Face tokenizer instance.
     - model (GenerationMixin): The Hugging Face model instance that supports text generation.
     - data (List[str]): The list of strings containing symptoms and diseases.
-    - page_size (int, optional): The size of each text chunk for pagination. Default is 1024 characters.
     - max_iterations (int, optional): Maximum number of iterations for text generation. Default is 1024.
     - decoding_strategy (str, optional): The decoding strategy to use for text generation. Default is 'generate'.
       - 'generate': Basic text generation (default). Relevant params: all.
@@ -93,8 +92,9 @@ def generate_follow_up_questions(
     - **generation_params (Any): Additional parameters for text generation. These override the defaults.
 
     Returns:
-    - Dict[int, Dict[str, Union[str, List[str]]]]: A dictionary containing the document ID and its generated follow-up questions.
+    - Dict[str, List[str]]: A dictionary containing the conditions and their corresponding generated follow-up questions.
     """
+
     results: Dict[int, Dict[str, Union[str, List[str]]]] = {}
     eos_token_id = model.config.eos_token_id
 

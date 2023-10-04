@@ -35,15 +35,15 @@ def quantize_transformer_model_with_autogptq(
     Parameters:
     - model_id (str): The identifier of the pre-trained model.
     - bits (int): The number of bits to quantize to (2, 3, 4, 8).
-    - dataset (Union[str, List[str]]): The dataset used for quantization.
     - save_dir (str): Directory to save the quantized model.
+    - dataset (Union[str, List[str]]): The dataset used for quantization. Default is "c4".
     - device_map (Optional[str]): Device map for model placement. Default is "auto".
     - group_size (Optional[int]): The group size for quantization. Default is 128.
     - damp_percent (Optional[float]): Dampening percent. Default is 0.1.
     - desc_act (Optional[bool]): Whether to quantize columns in order of decreasing activation size. Default is False.
     - sym (Optional[bool]): Whether to use symmetric quantization. Default is True.
     - true_sequential (Optional[bool]): Whether to perform sequential quantization. Default is True.
-    - use_cuda_fp16 (Optional[bool]): Whether to use optimized CUDA kernel for fp16. Default is False.
+    - use_cuda_fp16 (Optional[bool]): Whether to use optimized CUDA kernel for fp16. Default is True.
     - model_seqlen (Optional[int]): The maximum sequence length that the model can take.
     - block_name_to_quantize (Optional[str]): The transformers block name to quantize.
     - module_name_preceding_first_block (Optional[List[str]]): The layers preceding the first Transformer block.
@@ -52,7 +52,7 @@ def quantize_transformer_model_with_autogptq(
     - disable_exllama (Optional[bool]): Whether to use exllama backend. Default is False.
 
     Returns:
-    - AutoModelForCausalLM: The quantized model.
+    AutoModelForCausalLM: The quantized model.
     """
     # Initialize the tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_id)
@@ -111,13 +111,17 @@ def load_huggingface_model(
 
     Parameters:
     - model_name (str): The name of the model to load.
+    - model_class_name (str): The class name of the model to load. Default is "AutoModelForCausalLM".
+    - tokenizer_class_name (str): The class name of the tokenizer to load. Default is "AutoTokenizer".
     - use_cuda (bool): Whether to use CUDA for GPU acceleration. Default is False.
     - precision (str): The bit precision for model and tokenizer. Options are 'float32', 'float16', 'bfloat16'. Default is 'float16'.
     - quantize (bool): Whether to quantize the model. Default is False.
     - quantize_bits (int): Bit-width for quantization. Only 4 and 8 are supported. Default is 8.
     - quantize_dataset (str): The dataset used for quantization. Default is "c4".
     - quantize_save_dir (str): Directory to save the quantized model. Default is "./quantized_model".
-    - max_memory (str): Maximum GPU memory to be allocated.
+    - device_map (Union[str, Dict]): Device map for model placement. Default is "auto".
+    - max_memory (Dict): Maximum GPU memory to be allocated.
+    - model_args (Any): Additional keyword arguments for the model.
 
     Returns:
     Tuple[AutoModelForCausalLM, AutoTokenizer]: The loaded model and tokenizer.
@@ -203,11 +207,13 @@ def generate_embeddings(
     - term (str): The term for which to generate the embeddings.
     - model (PreTrainedModel): The model.
     - tokenizer (PreTrainedTokenizer): The tokenizer for the model.
-    - output_key (str, optional): The key to use to extract embeddings from the model output.
-                                   Defaults to 'last_hidden_state'.
+    - output_key (str, optional): The key to use to extract embeddings from the model output. Defaults to 'last_hidden_state'.
 
     Returns:
     np.ndarray: The generated embeddings.
+
+    Note:
+    - The embeddings are averaged along the sequence length dimension.
     """
     # Generate inputs
     inputs = tokenizer(term, return_tensors="pt")
