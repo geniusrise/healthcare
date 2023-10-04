@@ -56,19 +56,21 @@ def load_networkx_graph_with_pagerank(file_path: str) -> nx.DiGraph:
 
 def load_networkx_graph_with_pagerank_snomed(
     file_path: str,
+    relationship_weights: Dict[str, float],
     alpha: float = 0.85,
-    personalization: Optional[dict] = None,
+    personalization: Optional[Dict] = None,
     max_iter: int = 100,
     tol: float = 1.0e-6,
-    nstart: Optional[dict] = None,
+    nstart: Optional[Dict] = None,
     weight_key: str = "weight",
-    dangling: Optional[dict] = None,
+    dangling: Optional[Dict] = None,
 ) -> nx.DiGraph:
     """
     Loads a NetworkX graph from a file and calculates PageRank for each node.
 
     Parameters:
     - file_path (str): The file path from which to load the graph.
+    - relationship_weights (Dict[str, float]): The weights for different relationship types.
     - alpha (float): The damping parameter for PageRank, default is 0.85.
     - personalization (dict): The "personalization vector" consisting of a dictionary with a key for every graph node
                               and nonzero personalization value for each node.
@@ -104,17 +106,6 @@ def load_networkx_graph_with_pagerank_snomed(
     nx.set_node_attributes(G, pagerank, "pagerank")
     logging.debug("PageRank calculation completed and values stored as node attributes.")
 
-    # Special handling for SNOMED CT relationships based on the Graph Inference model by Bevan Koopman
-    # Define relationship type weightings
-    relationship_weights = {
-        "is a": 1.0,
-        "active ingredient": 1.0,
-        "definitional manifestation": 0.8,
-        "associated finding": 0.6,
-        "severity": 0.2,
-        "laterality": 0.2,
-    }
-
     # Update PageRank values based on relationship type weightings
     for node in G.nodes():
         weighted_pagerank = G.nodes[node]["pagerank"]
@@ -124,7 +115,7 @@ def load_networkx_graph_with_pagerank_snomed(
             weighted_pagerank *= weight
         G.nodes[node]["weighted_pagerank"] = weighted_pagerank
 
-    logging.debug("Weighted PageRank calculation based on SNOMED CT relationships completed.")
+    logging.debug("Weighted PageRank calculation based on relationship weights completed.")
 
     return G
 
