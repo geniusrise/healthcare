@@ -3,7 +3,6 @@ import pytest
 from geniusrise_healthcare.model import load_huggingface_model
 from geniusrise_healthcare.qa import generate_follow_up_questions
 
-
 # MODEL = "/run/media/ixaxaar/hynix_2tb/models/Llama-2-7b-hf"
 # MODEL = "/run/media/ixaxaar/hynix_2tb_2/Llama-2-13B-GPTQ"
 # MODEL = "/run/media/ixaxaar/hynix_2tb_2/Wizard-Vicuna-30B-Uncensored-GPTQ"

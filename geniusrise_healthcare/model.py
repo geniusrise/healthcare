@@ -1,11 +1,17 @@
 import logging
 import os
-from typing import List, Optional, Tuple, Union, Any, Dict
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-import torch
 import numpy as np
+import torch
 import transformers
-from transformers import AutoModelForCausalLM, AutoTokenizer, GPTQConfig, PreTrainedModel, PreTrainedTokenizer
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    GPTQConfig,
+    PreTrainedModel,
+    PreTrainedTokenizer,
+)
 
 log = logging.getLogger(__name__)
 
@@ -198,7 +204,10 @@ def load_huggingface_model(
 
 
 def generate_embeddings(
-    term: str, model: PreTrainedModel, tokenizer: PreTrainedTokenizer, output_key: str = "last_hidden_state"
+    term: str,
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizer,
+    output_key: str = "last_hidden_state",
 ) -> np.ndarray:
     """
     Generates embeddings for a given term using a model.

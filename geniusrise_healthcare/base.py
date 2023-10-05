@@ -1,13 +1,17 @@
-from typing import List, Dict, Any
-import pandas as pd
+from typing import Any, Dict, List
+
 import networkx as nx
-import faiss  # type: ignore
+import pandas as pd
 from transformers import AutoTokenizer, GenerationMixin
 
-from geniusrise_healthcare.ner import annotate_snomed
-from geniusrise_healthcare.search import find_adjacent_nodes, find_semantically_similar_nodes
-from geniusrise_healthcare.qa import generate_follow_up_questions
+import faiss  # type: ignore
 from geniusrise_healthcare.model import generate_embeddings
+from geniusrise_healthcare.ner import annotate_snomed
+from geniusrise_healthcare.qa import generate_follow_up_questions
+from geniusrise_healthcare.search import (
+    find_adjacent_nodes,
+    find_semantically_similar_nodes,
+)
 from geniusrise_healthcare.util import draw_subgraph
 
 
@@ -63,16 +67,24 @@ def generate_follow_up_questions_from_input(
         # Generate embeddings
         embeddings = generate_embeddings(term=node, tokenizer=ner_tokenizer, model=ner_model)
         closest_nodes = find_semantically_similar_nodes(
-            faiss_index=faiss_index, embedding=embeddings, cutoff_score=semantic_similarity_cutoff
+            faiss_index=faiss_index,
+            embedding=embeddings,
+            cutoff_score=semantic_similarity_cutoff,
         )
 
         if len(closest_nodes) > 0:
             snomed_concepts.extend([int(x[0]) for x in closest_nodes])
             neighbors = find_adjacent_nodes(
-                source_nodes=[int(x[0]) for x in closest_nodes], G=G, n=graph_search_depth, top_n=graph_search_top_n
+                source_nodes=[int(x[0]) for x in closest_nodes],
+                G=G,
+                n=graph_search_depth,
+                top_n=graph_search_top_n,
             )
             all_neighbors = find_adjacent_nodes(
-                source_nodes=[int(x[0]) for x in closest_nodes], G=G, n=graph_search_depth, top_n=0
+                source_nodes=[int(x[0]) for x in closest_nodes],
+                G=G,
+                n=graph_search_depth,
+                top_n=0,
             )
             topk_subgraphs.extend(neighbors)
             subgraphs.extend(all_neighbors)
@@ -158,13 +170,18 @@ def generate_follow_up_questions_from_input_no_snomed(
         # Generate embeddings
         embeddings = generate_embeddings(term=node, tokenizer=ner_tokenizer, model=ner_model)
         closest_nodes = find_semantically_similar_nodes(
-            faiss_index=faiss_index, embedding=embeddings, cutoff_score=semantic_similarity_cutoff
+            faiss_index=faiss_index,
+            embedding=embeddings,
+            cutoff_score=semantic_similarity_cutoff,
         )
 
         if len(closest_nodes) > 0:
             snomed_concepts.append([int(x[0]) for x in closest_nodes])
             all_neighbors = find_adjacent_nodes(
-                source_nodes=[int(x[0]) for x in closest_nodes], G=G, n=graph_search_depth, top_n=0
+                source_nodes=[int(x[0]) for x in closest_nodes],
+                G=G,
+                n=graph_search_depth,
+                top_n=0,
             )
             subgraphs.extend(all_neighbors)
 
@@ -247,7 +264,9 @@ def follow_up(
         # Generate embeddings
         embeddings = generate_embeddings(term=node, tokenizer=ner_tokenizer, model=ner_model)
         closest_nodes = find_semantically_similar_nodes(
-            faiss_index=faiss_index, embedding=embeddings, cutoff_score=semantic_similarity_cutoff
+            faiss_index=faiss_index,
+            embedding=embeddings,
+            cutoff_score=semantic_similarity_cutoff,
         )
 
         if len(closest_nodes) > 0:

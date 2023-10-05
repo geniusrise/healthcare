@@ -12,7 +12,11 @@ log = logging.getLogger(__name__)
 
 
 def find_adjacent_nodes(
-    source_nodes: List[int], G: nx.DiGraph, n: int = 1, top_n: int = 0, undirected: bool = False
+    source_nodes: List[int],
+    G: nx.DiGraph,
+    n: int = 1,
+    top_n: int = 0,
+    undirected: bool = False,
 ) -> List[nx.DiGraph]:
     """
     Finds the subset of nodes that are adjacent to the source nodes within n hops.

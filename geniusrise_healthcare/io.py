@@ -1,6 +1,6 @@
 import logging
 import pickle
-from typing import Dict, Union, Optional
+from typing import Dict, Optional, Union
 
 import networkx as nx
 

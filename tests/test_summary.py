@@ -1,8 +1,7 @@
 import pytest
-from geniusrise_healthcare.summary import (
-    generate_summary,
-)
+
 from geniusrise_healthcare.model import load_huggingface_model
+from geniusrise_healthcare.summary import generate_summary
 
 MODEL = "/run/media/ixaxaar/models_q/CodeLlama-34B-Python-GPTQ"
 

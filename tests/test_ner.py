@@ -4,13 +4,14 @@ from typing import List
 import pandas as pd
 import pytest
 
+from geniusrise_healthcare.model import load_huggingface_model
+from geniusrise_healthcare.ner import annotate_snomed
+
 # from medcat.cat import CAT
 # from medcat.cdb import CDB
 # from medcat.config import Config
 # from spacy.util import load_model_from_path
 
-from geniusrise_healthcare.model import load_huggingface_model
-from geniusrise_healthcare.ner import annotate_snomed
 
 # # Load the CDB and vocab
 # cdb = CDB.load("models/medcat-snomed/cdb.dat")

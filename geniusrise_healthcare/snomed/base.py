@@ -59,4 +59,9 @@ def load_snomed_into_networkx(
     process_refsets_file(refsets_file, G)
 
     log.info(f"Loaded {G.number_of_nodes()} nodes and {G.number_of_edges()} edges into the graph.")
-    return G, description_id_to_concept, concept_id_to_concept, concept_id_to_text_definition
+    return (
+        G,
+        description_id_to_concept,
+        concept_id_to_concept,
+        concept_id_to_text_definition,
+    )
