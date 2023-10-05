@@ -62,7 +62,13 @@ Given the user input below, identify the top 3 specific symptoms and diseases me
 input = "{input}"
 ```
 
-Here is the requested array of at max 3 symptoms and diseases referred by the patient:
+Example output:
+
+```python
+["febrile", "dyspnea"]
+```
+
+Here is the requested array of at max 3 symptoms and diseases as seen in SNOMED referred by the patient:
 
 ```python
 [\"""".format(

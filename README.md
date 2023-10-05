@@ -1,6 +1,6 @@
 ![banner](./assets/banner.png)
 
-# Geniusrise Healthcare Modules
+# Geniusrise Healthcare APIs
 
 1. NER using vector knowledge graph search
 2. Semantic similarity to find a consistent set of related conditions, diseases,
@@ -116,8 +116,6 @@ curl -s -X POST \
                 84162001,
                 313094006,
                 82272006
-            ],
-            [
                 248425001,
                 386661006
             ]
@@ -134,8 +132,6 @@ curl -s -X POST \
 
 ```bash
 {
-  "conditions": [
-    "cold sensation quality",
     "cold - thermal agent",
     "common cold",
     "pyrexia",

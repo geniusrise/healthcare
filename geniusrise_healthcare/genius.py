@@ -103,7 +103,7 @@ class InPatientAPI(Bolt):
         snomed_concept_ids = data.get("snomed_concept_ids", [])
         decoding_strategy = data.get("decoding_strategy", "generate")
         generation_params = data.get(
-            "generation_params", {"temperature": 0.7, "do_sample": True, "max_new_tokens": 100}
+            "generation_params", {"temperature": 0.7, "do_sample": True, "max_new_tokens": 200}
         )
         return generate_follow_up_questions_from_concepts(
             snomed_concept_ids=snomed_concept_ids,
