@@ -37,7 +37,7 @@ def prompt1(conditions: List[str], qa: Dict[str, str]) -> str:
     Returns:
     - str: A formatted prompt string for generating the medical report.
     """
-    cond = ", ".join(conditions)
+    cond = "\n".join([f"- {x}" for x in conditions])
     _qa = "\n\n".join([f"- **Question**: {q} \n  - **Answer**: {a}" for q, a in qa.items()])
 
     return f"""
@@ -54,7 +54,11 @@ Please generate a summary report in markdown format that includes the patient's 
 
 ## Recommended tests
 
-## Recommended diseases
+### Tests for diagnosis
+
+### Tests for exclusion
+
+## Diseases to check for and narrow down the cause
 ```
 
 Here is the report:
@@ -66,9 +70,13 @@ Here is the report:
 
 ### Patient's Observations
 
+The patient presented with the following complaints:
+
 {cond}
 
 ### Questions and Answers
+
+Subsequently, on further questioning, the patient had these to add on:
 
 {_qa}
 
@@ -117,6 +125,17 @@ The patient presented with the conditions {conditions}
 On further enquiry, a set of questions were asked to the patient, here are the questions and their answers:
 
 {qa}
+
+We need to recommend the patient to visit a department or consult with a doctor of a speciality.
+If the condition is generic, we need to recommend a general physician.
+
+Generate a recommendation containing:
+
+```
+## Speciality
+
+## Department
+```
 
 The patient should visit a doctor with speciality and from department:
 
