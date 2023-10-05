@@ -60,8 +60,7 @@ curl -s -X POST \
       "headache",
       "headache (& [c/o])",
       "feeling frustrated",
-      "irritation",
-      "paranoid psychosis"
+      "irritation"
     ]
   ]
 }
