@@ -7,11 +7,7 @@ import networkx as nx
 from transformers import AutoModel, AutoTokenizer
 
 import faiss
-from geniusrise_healthcare.io import (
-    save_concept_dict,
-    save_faiss_index,
-    save_networkx_graph,
-)
+from geniusrise_healthcare.io import save_concept_dict, save_faiss_index, save_networkx_graph
 from geniusrise_healthcare.model import load_huggingface_model
 from geniusrise_healthcare.snomed import load_snomed_into_networkx
 
@@ -43,24 +39,15 @@ def test_load_snomed_into_networkx_no_index():
             )
 
         # Run the function
-        (
-            G,
-            description_id_to_concept,
-            concept_id_to_concept,
-            concept_id_to_text_definition,
-        ) = load_snomed_into_networkx(tmpdir, batch_size=100000, skip_embedding=True)
+        G, description_id_to_concept, concept_id_to_concept, concept_id_to_text_definition = load_snomed_into_networkx(
+            tmpdir, batch_size=100000, skip_embedding=True
+        )
 
         # Save the data
         save_networkx_graph(G, "./saved-no-index/snomed.graph")
-        save_concept_dict(
-            description_id_to_concept,
-            "./saved-no-index/description_id_to_concept.pickle",
-        )
+        save_concept_dict(description_id_to_concept, "./saved-no-index/description_id_to_concept.pickle")
         save_concept_dict(concept_id_to_concept, "./saved-no-index/concept_id_to_concept.pickle")
-        save_concept_dict(
-            concept_id_to_text_definition,
-            "./saved-no-index/concept_id_to_text_definition.pickle",
-        )
+        save_concept_dict(concept_id_to_text_definition, "./saved-no-index/concept_id_to_text_definition.pickle")
 
         # Validate the output
         assert isinstance(G, nx.DiGraph)
@@ -81,8 +68,7 @@ def test_load_snomed_into_networkx():
         for file in snomed_files:
             shutil.copy(
                 os.path.join(
-                    "./data/snomed/SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z/Snapshot/Terminology",
-                    file,
+                    "./data/snomed/SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z/Snapshot/Terminology", file
                 ),
                 os.path.join(tmpdir, file),
             )
@@ -130,7 +116,7 @@ def test_load_snomed_into_networkx_llama_local():
     faiss_index = faiss.IndexIDMap(quantizer)
 
     # Run the function
-    (G, description_id_to_concept, concept_id_to_concept, concept_id_to_text_definition,) = load_snomed_into_networkx(
+    G, description_id_to_concept, concept_id_to_concept, concept_id_to_text_definition = load_snomed_into_networkx(
         "data/snomed/SnomedCT_InternationalRF2_PRODUCTION_20230901T120000Z/Snapshot/Terminology",
         batch_size=100000,
         skip_embedding=False,
@@ -147,12 +133,6 @@ def test_load_snomed_into_networkx_llama_local():
     # Save the data
     save_networkx_graph(G, "./saved-codellama-13b/snomed.graph")
     save_faiss_index(faiss_index, "./saved-codellama-13b/faiss.index")
-    save_concept_dict(
-        description_id_to_concept,
-        "./saved-codellama-13b/description_id_to_concept.pickle",
-    )
+    save_concept_dict(description_id_to_concept, "./saved-codellama-13b/description_id_to_concept.pickle")
     save_concept_dict(concept_id_to_concept, "./saved-codellama-13b/concept_id_to_concept.pickle")
-    save_concept_dict(
-        concept_id_to_text_definition,
-        "./saved-codellama-13b/concept_id_to_text_definition.pickle",
-    )
+    save_concept_dict(concept_id_to_text_definition, "./saved-codellama-13b/concept_id_to_text_definition.pickle")

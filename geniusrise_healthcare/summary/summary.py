@@ -187,24 +187,11 @@ def generate_summary(
         "generate": {"max_length": 4096},
         "greedy_search": {"max_length": 4096},
         "contrastive_search": {"max_length": 4096},
-        "sample": {
-            "do_sample": True,
-            "temperature": 0.6,
-            "top_p": 0.9,
-            "max_length": 4096,
-        },
+        "sample": {"do_sample": True, "temperature": 0.6, "top_p": 0.9, "max_length": 4096},
         "beam_search": {"num_beams": 4, "max_length": 4096},
         "beam_sample": {"num_beams": 4, "temperature": 0.6, "max_length": 4096},
-        "group_beam_search": {
-            "num_beams": 4,
-            "diversity_penalty": 0.5,
-            "max_length": 4096,
-        },
-        "constrained_beam_search": {
-            "num_beams": 4,
-            "max_length": 4096,
-            "constraints": None,
-        },
+        "group_beam_search": {"num_beams": 4, "diversity_penalty": 0.5, "max_length": 4096},
+        "constrained_beam_search": {"num_beams": 4, "max_length": 4096, "constraints": None},
     }
 
     # Merge default params with user-provided params
@@ -263,12 +250,7 @@ def generate_summary(
         speciality = extract2(generated_text)
         log.info(f"Generated speciality and department: {speciality}")
 
-        return {
-            "conditions": conditions,
-            "qa": qa,
-            "summary": summary,
-            "speciality": speciality,
-        }
+        return {"conditions": conditions, "qa": qa, "summary": summary, "speciality": speciality}
 
     except Exception as e:
         raise ValueError(f"An error occurred: {e}")

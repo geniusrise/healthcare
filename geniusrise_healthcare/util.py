@@ -44,13 +44,7 @@ def get_node_levels(G, root_nodes):
     return levels
 
 
-def draw_subgraph(
-    subgraph,
-    concept_id_to_concept,
-    save_location,
-    highlight_nodes=None,
-    layout_name="arf",
-):
+def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_nodes=None, layout_name="arf"):
     num_nodes = len(subgraph.nodes())
 
     # Decide figure size based on the number of nodes

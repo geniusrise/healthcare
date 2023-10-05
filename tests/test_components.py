@@ -1,11 +1,7 @@
 import pytest
 from transformers import AutoModel, AutoTokenizer
 
-from geniusrise_healthcare.io import (
-    load_concept_dict,
-    load_faiss_index,
-    load_networkx_graph,
-)
+from geniusrise_healthcare.io import load_concept_dict, load_faiss_index, load_networkx_graph
 from geniusrise_healthcare.model import load_huggingface_model
 from geniusrise_healthcare.network_utils import (  # find_largest_attracting_component,; find_largest_strongly_connected_component,; find_largest_weakly_connected_component,
     find_largest_connected_component,
@@ -40,34 +36,16 @@ def loaded_data():
 
     if MODEL != "bert-base-uncased":
         model, tokenizer = load_huggingface_model(
-            MODEL,
-            use_cuda=True,
-            device_map=None,
-            precision="float32",
-            model_class_name="AutoModel",
+            MODEL, use_cuda=True, device_map=None, precision="float32", model_class_name="AutoModel"
         )
     else:
         tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
         model = AutoModel.from_pretrained("bert-base-uncased")
-    return (
-        G,
-        faiss_index,
-        concept_id_to_concept,
-        description_id_to_concept,
-        tokenizer,
-        model,
-    )
+    return G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model
 
 
 def test_find_related_subgraphs(loaded_data):
-    (
-        G,
-        faiss_index,
-        concept_id_to_concept,
-        description_id_to_concept,
-        tokenizer,
-        model,
-    ) = loaded_data
+    G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model = loaded_data
 
     user_terms = QUERY
 
@@ -93,14 +71,7 @@ def test_find_related_subgraphs(loaded_data):
 
 
 def test_find_related_subgraphs_stop(loaded_data):
-    (
-        G,
-        faiss_index,
-        concept_id_to_concept,
-        description_id_to_concept,
-        tokenizer,
-        model,
-    ) = loaded_data
+    G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model = loaded_data
 
     user_terms = QUERY
 
@@ -211,14 +182,7 @@ def test_find_related_subgraphs_stop(loaded_data):
 
 
 def test_find_largest_connected_component(loaded_data):
-    (
-        G,
-        faiss_index,
-        concept_id_to_concept,
-        description_id_to_concept,
-        tokenizer,
-        model,
-    ) = loaded_data
+    G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model = loaded_data
 
     user_terms = QUERY
 
@@ -247,14 +211,7 @@ def test_find_largest_connected_component(loaded_data):
 
 
 def test_find_largest_connected_component_with_nodes(loaded_data):
-    (
-        G,
-        faiss_index,
-        concept_id_to_concept,
-        description_id_to_concept,
-        tokenizer,
-        model,
-    ) = loaded_data
+    G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model = loaded_data
 
     user_terms = QUERY
 
@@ -283,14 +240,7 @@ def test_find_largest_connected_component_with_nodes(loaded_data):
 
 
 def test_find_largest_connected_component_stop(loaded_data):
-    (
-        G,
-        faiss_index,
-        concept_id_to_concept,
-        description_id_to_concept,
-        tokenizer,
-        model,
-    ) = loaded_data
+    G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model = loaded_data
 
     user_terms = QUERY
 
@@ -320,14 +270,7 @@ def test_find_largest_connected_component_stop(loaded_data):
 
 
 def test_find_largest_connected_component_with_nodes_stop(loaded_data):
-    (
-        G,
-        faiss_index,
-        concept_id_to_concept,
-        description_id_to_concept,
-        tokenizer,
-        model,
-    ) = loaded_data
+    G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model = loaded_data
 
     user_terms = QUERY
 
