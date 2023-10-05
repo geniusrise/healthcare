@@ -1,6 +1,11 @@
 import base64
 from typing import Any, Dict, List, Optional
 import os
+import logging
+
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 
 import cherrypy
 from geniusrise import BatchInput, BatchOutput, Bolt, State
@@ -16,6 +21,9 @@ from geniusrise_healthcare.io import load_concept_dict, load_faiss_index, load_n
 from geniusrise_healthcare.model import load_huggingface_model
 
 
+log = logging.getLogger(__file__)
+
+
 class InPatientAPI(Bolt):
     def __init__(
         self,
@@ -25,6 +33,7 @@ class InPatientAPI(Bolt):
         **kwargs,
     ) -> None:
         super().__init__(input=input, output=output, state=state)
+        log.info("Loading in-patient API server")
 
     def load_models(
         self,
@@ -36,6 +45,8 @@ class InPatientAPI(Bolt):
         description_id_to_concept: str = "./saved/description_id_to_concept.pickle",
     ) -> None:
         """Load all required models and tokenizers."""
+
+        log.warn(f"Loading model {llm_model}")
         self.model, self.tokenizer = load_huggingface_model(
             llm_model,
             use_cuda=True,
@@ -45,12 +56,16 @@ class InPatientAPI(Bolt):
             use_safetensors=True,
             trust_remote_code=True,
         )
+        log.warn(f"Loading graph {networkx_graph}")
         self.G = load_networkx_graph(networkx_graph)
+        log.warn(f"Loading FAISS index {faiss_index}")
         self.faiss_index = load_faiss_index(faiss_index)
+        log.warn(f"Loading lookup dictionaries {concept_id_to_concept} {description_id_to_concept}")
         self.concept_id_to_concept = load_concept_dict(concept_id_to_concept)
         self.description_id_to_concept = load_concept_dict(description_id_to_concept)
 
         if ner_model != "bert-base-uncased":
+            log.warn(f"Loading NER model {ner_model}")
             self.ner_model, self.ner_tokenizer = load_huggingface_model(
                 ner_model, use_cuda=True, device_map=None, precision="float32", model_class_name="AutoModel"
             )
@@ -72,6 +87,7 @@ class InPatientAPI(Bolt):
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
+    @cherrypy.tools.allow(methods=["POST"])
     def find_symptoms_diseases(self, username: Optional[str] = None, password: Optional[str] = None) -> Dict[str, Any]:
         if username and password:
             self._check_auth(username=username, password=password)
@@ -94,6 +110,7 @@ class InPatientAPI(Bolt):
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
+    @cherrypy.tools.allow(methods=["POST"])
     def generate_follow_up_questions_from_concepts(
         self, username: Optional[str] = None, password: Optional[str] = None
     ) -> List[Dict]:
@@ -117,6 +134,7 @@ class InPatientAPI(Bolt):
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
+    @cherrypy.tools.allow(methods=["POST"])
     def generate_summary_from_qa(
         self, username: Optional[str] = None, password: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -141,6 +159,7 @@ class InPatientAPI(Bolt):
 
     @cherrypy.expose
     @cherrypy.tools.json_in()
+    @cherrypy.tools.allow(methods=["POST"])
     def generate_snomed_graph(self, username: Optional[str] = None, password: Optional[str] = None) -> None:
         if username and password:
             self._check_auth(username=username, password=password)
@@ -155,17 +174,40 @@ class InPatientAPI(Bolt):
         )
 
         file_path = result[1]
+        graph_text = result[2]
 
         if os.path.exists(file_path):
-            cherrypy.response.headers["Content-Type"] = "application/octet-stream"
-            cherrypy.response.headers["Content-Disposition"] = f'attachment; filename="{os.path.basename(file_path)}"'
+            multipart = MIMEMultipart()
 
+            # Add the graph text
+            text_part = MIMEText(graph_text, "plain")
+            multipart.attach(text_part)
+
+            # Add the file
             with open(file_path, "rb") as f:
                 file_data = f.read()
 
-            return file_data  # type: ignore
+            file_part = MIMEApplication(file_data, Name=os.path.basename(file_path))
+            multipart.attach(file_part)
+
+            # Convert multipart object to bytes
+            multipart_bytes = multipart.as_bytes()
+            log.debug(f"Multipart bytes length: {len(multipart_bytes)}")
+
+            cherrypy.response.stream = True
+            cherrypy.response.timeout = 10000
+            cherrypy.response.headers["Content-Type"] = "multipart/mixed"
+            cherrypy.response.headers["Content-Length"] = str(len(multipart_bytes))
+
+            def content():
+                yield multipart_bytes
+
+            return content()
+
+            log.debug(f"Multipart response successfully created with size {len(multipart_bytes)} bytes.")
         else:
-            raise cherrypy.HTTPError(404, "File not found")
+            log.error("File does not exist.")
+            raise ValueError("Server crashed")
 
     def listen(
         self,

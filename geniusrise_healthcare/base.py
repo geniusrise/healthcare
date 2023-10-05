@@ -1,5 +1,6 @@
 import tempfile
 from typing import Any, Dict, List, Tuple
+import logging
 
 import networkx as nx
 import pandas as pd
@@ -12,6 +13,9 @@ from geniusrise_healthcare.qa import generate_follow_up_questions
 from geniusrise_healthcare.search import find_adjacent_nodes, find_semantically_similar_nodes
 from geniusrise_healthcare.summary import generate_summary
 from geniusrise_healthcare.util import draw_subgraph
+
+
+log = logging.getLogger(__file__)
 
 
 def find_symptoms_diseases(
@@ -42,7 +46,7 @@ def find_symptoms_diseases(
     - Dict[str, Any]: A dictionary containing the query, symptoms, diseases, and related SNOMED concepts.
     """
     data = pd.DataFrame({"text": [user_input]})
-    annotations = annotate_snomed("llm", tokenizer, model, data, type_ids_filter)
+    annotations = annotate_snomed("llm", tokenizer, model, data, type_ids_filter, max_new_tokens=25)
     symptoms_and_diseases = [x["snomed"] for x in annotations[0]["annotations"]]
 
     snomed_concept_ids = []
@@ -168,13 +172,14 @@ def generate_snomed_graph_from_concepts(
     for graph in subgraphs[1:]:
         composed_graph = nx.compose(composed_graph, graph)
 
-    tmp_file = f"{tempfile.mkdtemp()}/image.png"
+    tmp_file = f"{tempfile.mkdtemp()}/image"
+    log.info(f"Saving image at {tmp_file}")
 
     draw_subgraph(
         subgraph=composed_graph,
         concept_id_to_concept=concept_id_to_concept,
         save_location=tmp_file,
-        highlight_nodes=[x for y in snomed_concepts for x in y],
+        # highlight_nodes=[x for y in snomed_concepts for x in y],
     )
 
     human_readable_str = "Graph:\n"
@@ -182,7 +187,9 @@ def generate_snomed_graph_from_concepts(
         from_node, to_node, edge_data = edge
         from_node_name = concept_id_to_concept.get(str(from_node), from_node)
         to_node_name = concept_id_to_concept.get(str(to_node), to_node)
-        edge_data_str = ", ".join(f"{k}={v}" for k, v in edge_data.items())
-        human_readable_str += f"{from_node_name} --[{edge_data_str}]--> {to_node_name}\n"
+        # edge_data_str = ", ".join(f"{k}={v}" for k, v in .items())
+        human_readable_str += (
+            f"{from_node_name} --[{ concept_id_to_concept[edge_data['relationship_type']] }]--> {to_node_name}\n"
+        )
 
-    return composed_graph, tmp_file, human_readable_str
+    return composed_graph, f"{tmp_file}.png", human_readable_str
