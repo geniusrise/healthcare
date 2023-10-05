@@ -173,10 +173,10 @@ def annotate_snomed(
                 generated_ids = decoding_method(input_ids, **strategy_params)
 
                 generated_text = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-                log.debug(f"Generated text: {generated_text}")
+                log.info(f"Generated text: {generated_text}")
 
                 extracted_snomed = extract(generated_text)
-                log.info(f"Extracted SNOMED terms: {extracted_snomed}")
+                log.warn(f"Extracted SNOMED terms: {extracted_snomed}")
                 annotations += [
                     {
                         "start": -1,

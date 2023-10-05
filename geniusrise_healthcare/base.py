@@ -113,7 +113,7 @@ def generate_summary_from_qa(
     concept_id_to_concept: Dict[str, str],
     decoding_strategy: str = "generate",
     **generation_params: Any,
-) -> List[dict]:
+) -> Dict[str, Any]:
     """
     Generate follow-up questions based on SNOMED concepts.
 
@@ -139,25 +139,7 @@ def generate_summary_from_qa(
         **generation_params,
     )
 
-    all_follow_up_questions = []
-    for _conditions in snomed_concept_ids:
-        conditions = [concept_id_to_concept.get(str(node), "0") for node in _conditions]
-        follow_up_questions = generate_follow_up_questions(
-            tokenizer=tokenizer,
-            model=model,
-            data=conditions,
-            decoding_strategy=decoding_strategy,
-            **generation_params,
-        )
-        all_follow_up_questions.append(
-            {
-                "snomed_concept_ids": _conditions,
-                "snomed_concepts": conditions,
-                "questions": follow_up_questions["follow_up_questions"],
-            }
-        )
-
-    return all_follow_up_questions
+    return result
 
 
 def generate_snomed_graph_from_concepts(

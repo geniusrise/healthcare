@@ -143,10 +143,10 @@ def generate_follow_up_questions(
         generated_ids = decoding_method(input_ids, **strategy_params)
 
         generated_text = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-        log.debug(f"Generated text: {generated_text}")
+        log.info(f"Generated text: {generated_text}")
 
         follow_up_questions = extract(generated_text)
-        log.info(f"Generated follow-up questions: {follow_up_questions}")
+        log.warn(f"Generated follow-up questions: {follow_up_questions}")
 
         return {"conditions": data, "follow_up_questions": follow_up_questions}
 

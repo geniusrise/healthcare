@@ -45,7 +45,7 @@ def prompt1(conditions: List[str], qa: Dict[str, str]) -> str:
 
 Generate a comprehensive medical in-patient report for a doctor's review. The patient has presented with the following conditions: {cond}. Further questions were asked to understand the symptoms better.
 
-Please generate a summary report in markdown format that includes the patient's observations, summarizes the questions that were asked, and recommends tests to be conducted and diseases to be checked to further narrow down the cause.
+Please generate a summary report in less than 150 words in markdown format that includes the patient's observations, summarizes the questions that were asked, and recommends tests to be conducted and diseases to be checked to further narrow down the cause.
 
 ```
 # In-Patient Report
@@ -98,7 +98,7 @@ def extract2(text: str) -> Optional[str]:
     - Optional[str]: The extracted summary report as a string, or None if not found.
     """
     # Regular expression pattern to match the summary report
-    pattern = r"The patient should visit a doctor with speciality and from department:\n\n```markdown\n(.*?)\n```"
+    pattern = r"The patient should visit the following department:\n\n```markdown\n(.*?)\n```"
     match = re.search(pattern, text, re.DOTALL)
     if match:
         return match.group(1)
@@ -121,28 +121,28 @@ def prompt2(conditions: List[str], qa: Dict[str, str]) -> str:
     return """
 ## Task
 
+We need to recommend the patient to visit a department or consult with a doctor of a speciality.
+If the condition is generic, we need to recommend a general physician.
+
+Example:
+
+```
+### Department
+
+The patient should visit the **Outpatient** department.
+```
+
 The patient presented with the conditions {conditions}
 On further enquiry, a set of questions were asked to the patient, here are the questions and their answers:
 
 {qa}
 
-We need to recommend the patient to visit a department or consult with a doctor of a speciality.
-If the condition is generic, we need to recommend a general physician.
-
-Generate a recommendation containing:
-
-```
-## Speciality
-
-## Department
-```
-
-The patient should visit a doctor with speciality and from department:
+The patient should visit the following department:
 
 ```markdown
-## Speciality
+### Department
 
-""".format(
+The patient should visit the **""".format(
         conditions=cond, qa=_qa
     )
 
@@ -226,10 +226,10 @@ def generate_summary(
         generated_ids = decoding_method(input_ids, **strategy_params)
 
         generated_text = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-        log.debug(f"Generated text: {generated_text}")
+        log.info(f"Generated text: {generated_text}")
 
         summary = extract1(generated_text)
-        log.info(f"Generated summary: {summary}")
+        log.warn(f"Generated summary: {summary}")
 
         # 1: generate guidance for patient
         prompt_text = prompt2(conditions=conditions, qa=qa)
@@ -242,13 +242,15 @@ def generate_summary(
 
         # Use the specified decoding strategy
         decoding_method = strategy_to_method.get(decoding_strategy, model.generate)
+        if "max_new_tokens" in strategy_params:
+            strategy_params["max_new_tokens"] = 10
         generated_ids = decoding_method(input_ids, **strategy_params)
 
         generated_text = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-        log.debug(f"Generated text: {generated_text}")
+        log.info(f"Generated text: {generated_text}")
 
         speciality = extract2(generated_text)
-        log.info(f"Generated speciality and department: {speciality}")
+        log.warn(f"Generated speciality and department: {speciality}")
 
         return {"conditions": conditions, "qa": qa, "summary": summary, "speciality": speciality}
 
