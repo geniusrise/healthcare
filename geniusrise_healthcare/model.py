@@ -102,7 +102,7 @@ def load_huggingface_model(
     quantize_bits: int = 8,
     quantize_dataset: str = "c4",
     quantize_save_dir: str = "./quantized_model",
-    device_map: str | Dict = "auto",
+    device_map: str | Dict | None = "auto",
     max_memory={0: "24GB"},
     **model_args: Any,
 ) -> Tuple[AutoModelForCausalLM, AutoTokenizer]:

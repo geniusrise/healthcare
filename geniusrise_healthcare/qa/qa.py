@@ -42,6 +42,8 @@ def prompt(conditions: List[str]) -> str:
     _conditions = '["{cond}"]'.format(cond='", "'.join(conditions))
 
     return """
+## Task
+
 Given the list of symptoms and diseases below, your task is to generate a set of follow-up questions to ask the patient.
 These questions should help healthcare professionals gather more detailed information for a more accurate pre-clinical analysis.
 Please adhere to the following guidelines:
@@ -141,7 +143,7 @@ def generate_follow_up_questions(
         generated_ids = decoding_method(input_ids, **strategy_params)
 
         generated_text = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-        log.info(f"Generated text: {generated_text}")
+        log.debug(f"Generated text: {generated_text}")
 
         follow_up_questions = extract(generated_text)
         log.info(f"Generated follow-up questions: {follow_up_questions}")
