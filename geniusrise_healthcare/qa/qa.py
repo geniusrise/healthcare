@@ -20,7 +20,7 @@ def extract(text: str) -> List[str]:
     - List[str]: A list of extracted follow-up questions.
     """
     # Regular expression pattern to match the array of follow-up questions
-    pattern = r"Here is an array of [0-9]* follow up questions:\n```python\n\[(.*?)\]\n```"
+    pattern = r"Here is an array of [0-9]* follow up questions:\n```python(.*?)```"
     match = re.search(pattern, text, re.DOTALL)
     if match:
         question_list_str = match.group(1)
