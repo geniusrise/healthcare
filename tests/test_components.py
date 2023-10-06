@@ -20,7 +20,7 @@ SEMANTIC_TYPES = ["disorder"]
 # DESCRIPTION_ID_TO_CONCEPT = "./saved-llama-7b/description_id_to_concept.pickle"
 
 
-MODEL = "bert-base-uncased"
+MODEL = "emilyalsentzer/Bio_ClinicalBERT"
 NETWORKX_GRAPH = "./saved/snomed.graph"
 FAISS_INDEX = "./saved/faiss.index"
 CONCEPT_ID_TO_CONCEPT = "./saved/concept_id_to_concept.pickle"
@@ -34,13 +34,13 @@ def loaded_data():
     concept_id_to_concept = load_concept_dict(CONCEPT_ID_TO_CONCEPT)
     description_id_to_concept = load_concept_dict(DESCRIPTION_ID_TO_CONCEPT)
 
-    if MODEL != "bert-base-uncased":
+    if MODEL != "emilyalsentzer/Bio_ClinicalBERT":
         model, tokenizer = load_huggingface_model(
             MODEL, use_cuda=True, device_map=None, precision="float32", model_class_name="AutoModel"
         )
     else:
-        tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-        model = AutoModel.from_pretrained("bert-base-uncased")
+        tokenizer = AutoTokenizer.from_pretrained("emilyalsentzer/Bio_ClinicalBERT")
+        model = AutoModel.from_pretrained("emilyalsentzer/Bio_ClinicalBERT")
     return G, faiss_index, concept_id_to_concept, description_id_to_concept, tokenizer, model
 
 

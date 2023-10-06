@@ -28,7 +28,7 @@ def extract(text: str) -> List[str]:
     return []
 
 
-def prompt(conditions: List[str]) -> str:
+def prompt(conditions: List[str], symptoms_diseases: List[str]) -> str:
     """
     Generates a prompt asking for follow-up questions based on symptoms and diseases.
 
@@ -56,13 +56,16 @@ Please adhere to the following guidelines:
 
 List of Symptoms and Diseases:
 ```python
-conditions = {conditions}
+snomed_conditions = {conditions}
+reported_conditions = {symptoms_diseases}
 ```
 
 Here is an array of {num_conditions} follow up questions:
 ```python
 [\"""".format(
-        conditions=_conditions, num_conditions=5 if num_conditions > 5 else num_conditions
+        conditions=_conditions,
+        num_conditions=5 if num_conditions > 5 else num_conditions,
+        symptoms_diseases=", ".join(symptoms_diseases),
     )
 
 
@@ -70,6 +73,7 @@ def generate_follow_up_questions(
     tokenizer: AutoTokenizer,
     model: GenerationMixin,
     data: List[str],
+    symptoms_diseases: List[str],
     max_iterations: int = 1024,
     decoding_strategy: str = "generate",
     **generation_params: Any,
@@ -130,7 +134,7 @@ def generate_follow_up_questions(
     try:
         log.info(f"Generating follow-up questions for document {data}")
 
-        prompt_text = prompt(conditions=data)
+        prompt_text = prompt(conditions=data, symptoms_diseases=symptoms_diseases)
         inputs = tokenizer(prompt_text, return_tensors="pt")
 
         if torch.cuda.is_available():

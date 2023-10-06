@@ -190,7 +190,7 @@ def load_huggingface_model(
     model.eval()
 
     # Check if CUDA should be used
-    if use_cuda and torch.cuda.is_available():
+    if use_cuda and torch.cuda.is_available() and device_map != "auto":
         log.info("Using CUDA for Hugging Face model.")
         model.to("cuda:0")
 

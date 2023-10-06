@@ -38,7 +38,7 @@ class InPatientAPI(Bolt):
     def load_models(
         self,
         llm_model: str = "/run/media/ixaxaar/models_f/models/Mistral-7B-v0.1",
-        ner_model: str = "bert-base-uncased",
+        ner_model: str = "emilyalsentzer/Bio_ClinicalBERT",
         networkx_graph: str = "./saved/snomed.graph",
         faiss_index: str = "./saved/faiss.index",
         concept_id_to_concept: str = "./saved/concept_id_to_concept.pickle",
@@ -64,14 +64,14 @@ class InPatientAPI(Bolt):
         self.concept_id_to_concept = load_concept_dict(concept_id_to_concept)
         self.description_id_to_concept = load_concept_dict(description_id_to_concept)
 
-        if ner_model != "bert-base-uncased":
+        if ner_model != "emilyalsentzer/Bio_ClinicalBERT":
             log.warn(f"Loading NER model {ner_model}")
             self.ner_model, self.ner_tokenizer = load_huggingface_model(
                 ner_model, use_cuda=True, device_map=None, precision="float32", model_class_name="AutoModel"
             )
         else:
-            self.ner_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-            self.ner_model = AutoModel.from_pretrained("bert-base-uncased")
+            self.ner_tokenizer = AutoTokenizer.from_pretrained("emilyalsentzer/Bio_ClinicalBERT")
+            self.ner_model = AutoModel.from_pretrained("emilyalsentzer/Bio_ClinicalBERT")
 
     def _check_auth(self, username: str, password: str) -> None:
         """Check if the provided username and password are correct."""
@@ -94,7 +94,7 @@ class InPatientAPI(Bolt):
         data = cherrypy.request.json
         user_input = data.get("user_input", "")
         type_ids_filter = data.get("type_ids_filter", [])
-        semantic_similarity_cutoff = data.get("semantic_similarity_cutoff", 0.3)
+        semantic_similarity_cutoff = data.get("semantic_similarity_cutoff", 0.6)
         return find_symptoms_diseases(
             user_input=user_input,
             tokenizer=self.tokenizer,
@@ -118,12 +118,20 @@ class InPatientAPI(Bolt):
             self._check_auth(username=username, password=password)
         data = cherrypy.request.json
         snomed_concept_ids = data.get("snomed_concept_ids", [])
+        symptoms_diseases = data.get("symptoms_diseases", [])
         decoding_strategy = data.get("decoding_strategy", "generate")
         generation_params = data.get(
-            "generation_params", {"temperature": 0.7, "do_sample": True, "max_new_tokens": 1000}
+            "generation_params",
+            {
+                "temperature": 0.7,
+                "do_sample": True,
+                "max_new_tokens": 256,
+                "exponential_decay_length_penalty": [230, 1.3],
+            },
         )
         return generate_follow_up_questions_from_concepts(
             snomed_concept_ids=snomed_concept_ids,
+            symptoms_diseases=symptoms_diseases,
             tokenizer=self.tokenizer,
             model=self.model,
             concept_id_to_concept=self.concept_id_to_concept,
@@ -144,12 +152,20 @@ class InPatientAPI(Bolt):
         snomed_concept_ids = data.get("snomed_concept_ids", [])
         qa = data.get("qa", {})
         decoding_strategy = data.get("decoding_strategy", "generate")
+        symptoms_diseases = data.get("symptoms_diseases", [])
         generation_params = data.get(
-            "generation_params", {"temperature": 0.7, "do_sample": True, "max_new_tokens": 1000}
+            "generation_params",
+            {
+                "temperature": 0.7,
+                "do_sample": True,
+                "max_new_tokens": 300,
+                "exponential_decay_length_penalty": [256, 1.3],
+            },
         )
         return generate_summary_from_qa(
             snomed_concept_ids=snomed_concept_ids,
             qa=qa,
+            symptoms_diseases=symptoms_diseases,
             tokenizer=self.tokenizer,
             model=self.model,
             concept_id_to_concept=self.concept_id_to_concept,
@@ -214,7 +230,7 @@ class InPatientAPI(Bolt):
         endpoint: str = "*",
         port: int = 3000,
         llm_model: str = "/run/media/ixaxaar/models_f/models/Mistral-7B-v0.1",
-        ner_model: str = "bert-base-uncased",
+        ner_model: str = "emilyalsentzer/Bio_ClinicalBERT",
         networkx_graph: str = "./saved/snomed.graph",
         faiss_index: str = "./saved/faiss.index",
         concept_id_to_concept: str = "./saved/concept_id_to_concept.pickle",

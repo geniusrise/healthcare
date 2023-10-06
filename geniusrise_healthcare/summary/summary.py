@@ -26,7 +26,7 @@ def extract1(text: str) -> Optional[str]:
     return None
 
 
-def prompt1(conditions: List[str], qa: Dict[str, str]) -> str:
+def prompt1(conditions: List[str], qa: Dict[str, str], symptoms_diseases: List[str]) -> str:
     """
     Generates a prompt for creating a medical in-patient report for a doctor's consumption.
 
@@ -72,6 +72,10 @@ Here is the report:
 
 The patient presented with the following complaints:
 
+{symptoms_diseases}
+
+of which these are the conditions identified from SNOMED:
+
 {cond}
 
 ### Questions and Answers
@@ -83,7 +87,7 @@ Subsequently, on further questioning, the patient had these to add on:
 ## Recommended tests
 
 """.format(
-        cond=cond, _qa=_qa
+        cond=cond, _qa=_qa, symptoms_diseases=", ".join(symptoms_diseases)
     )
 
 
@@ -105,7 +109,7 @@ def extract2(text: str) -> Optional[str]:
     return None
 
 
-def prompt2(conditions: List[str], qa: Dict[str, str]) -> str:
+def prompt2(conditions: List[str], qa: Dict[str, str], symptoms_diseases: List[str]) -> str:
     """
     Generates a prompt asking for follow-up questions based on symptoms and diseases.
 
@@ -115,7 +119,7 @@ def prompt2(conditions: List[str], qa: Dict[str, str]) -> str:
     Returns:
     - str: A formatted prompt string asking for follow-up questions.
     """
-    cond = ", ".join(conditions)
+    cond = ", ".join(symptoms_diseases)
     _qa = "\n\n".join([f"Question: {q}? \n Answer: {a}" for q, a in qa.items()])
 
     return """
@@ -152,6 +156,7 @@ def generate_summary(
     model: GenerationMixin,
     conditions: List[str],
     qa: Dict[str, str],
+    symptoms_diseases: List[str],
     max_iterations: int = 1024,
     decoding_strategy: str = "generate",
     **generation_params: Any,
@@ -213,7 +218,7 @@ def generate_summary(
         log.info(f"Generating summary for questions {qa}")
 
         # 1: generate summary report for doctor
-        prompt_text = prompt1(conditions=conditions, qa=qa)
+        prompt_text = prompt1(conditions=conditions, qa=qa, symptoms_diseases=symptoms_diseases)
         inputs = tokenizer(prompt_text, return_tensors="pt")
 
         if torch.cuda.is_available():
@@ -232,7 +237,7 @@ def generate_summary(
         log.warn(f"Generated summary: {summary}")
 
         # 1: generate guidance for patient
-        prompt_text = prompt2(conditions=conditions, qa=qa)
+        prompt_text = prompt2(conditions=conditions, qa=qa, symptoms_diseases=symptoms_diseases)
         inputs = tokenizer(prompt_text, return_tensors="pt")
 
         if torch.cuda.is_available():

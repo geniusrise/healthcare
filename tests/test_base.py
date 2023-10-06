@@ -12,7 +12,7 @@ from geniusrise_healthcare.model import load_huggingface_model
 
 # Initialization settings
 LLM_MODEL = "/run/media/ixaxaar/models_q/CodeLlama-34B-Python-GPTQ"
-NER_MODEL = "bert-base-uncased"
+NER_MODEL = "emilyalsentzer/Bio_ClinicalBERT"
 NETWORKX_GRAPH = "./saved/snomed.graph"
 FAISS_INDEX = "./saved/faiss.index"
 CONCEPT_ID_TO_CONCEPT = "./saved/concept_id_to_concept.pickle"
@@ -34,7 +34,7 @@ faiss_index = load_faiss_index(FAISS_INDEX)
 concept_id_to_concept = load_concept_dict(CONCEPT_ID_TO_CONCEPT)
 description_id_to_concept = load_concept_dict(DESCRIPTION_ID_TO_CONCEPT)
 
-if NER_MODEL != "bert-base-uncased":
+if NER_MODEL != "emilyalsentzer/Bio_ClinicalBERT":
     ner_model, ner_tokenizer = load_huggingface_model(
         model_name=NER_MODEL,
         use_cuda=True,
@@ -43,8 +43,8 @@ if NER_MODEL != "bert-base-uncased":
         model_class_name="AutoModel",
     )
 else:
-    ner_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-    ner_model = AutoModel.from_pretrained("bert-base-uncased")
+    ner_tokenizer = AutoTokenizer.from_pretrained("emilyalsentzer/Bio_ClinicalBERT")
+    ner_model = AutoModel.from_pretrained("emilyalsentzer/Bio_ClinicalBERT")
 
 # Test parameters
 test_user_inputs = ["I have a fever and cough."]

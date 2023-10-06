@@ -12,7 +12,7 @@
 # Usage
 
 ```bash
-LOGLEVEL=DEBUG genius InPatientAPI rise\
+genius InPatientAPI rise\
     batch \
         --input_s3_bucket geniusrise-test-healthcare \
         --input_s3_folder snomed-graph \
@@ -25,9 +25,9 @@ LOGLEVEL=DEBUG genius InPatientAPI rise\
             endpoint="*" \
             port=2180 \
             llm_model="/run/media/ixaxaar/models_q/CodeLlama-34B-Python-GPTQ" \
-            ner_model="bert-base-uncased" \
+            ner_model="emilyalsentzer/Bio_ClinicalBERT" \
             networkx_graph="./saved/snomed.graph" \
-            faiss_index="./saved/faiss.index" \
+            faiss_index="./saved/faiss.index.Bio_ClinicalBERT" \
             concept_id_to_concept="./saved/concept_id_to_concept.pickle" \
             description_id_to_concept="./saved/description_id_to_concept.pickle"
 ```
@@ -39,29 +39,21 @@ LOGLEVEL=DEBUG genius InPatientAPI rise\
 ```bash
 curl -s -X POST \
      -H "Content-Type: application/json" \
-     -d '{"user_input": "i feel a bit light headed and have some difficulty breathing and a little pain in my chest"}' \
+     -d '{"user_input": "i feel a bit light headed and have some difficulty breathing and some chest pain"}' \
      http://localhost:2180/find_symptoms_diseases | jq
 ```
 
 ```json
 {
-  "query": "i have been feeling a bit cold and i think i have a fever and a light headache",
-  "symptoms_diseases": ["cold", "fever", "headache"],
+  "query": "i feel a bit light headed and have some difficulty breathing and some chest pain",
+  "symptoms_diseases": ["light headed", "difficulty breathing", "chest pain"],
   "snomed_concept_ids": [
-    [84162001, 313094006, 82272006],
-    [248425001, 386661006],
-    [25064002, 139490008, 162209005, 224973000, 257553007, 191667009]
+    [139200001, 161945003, 230145002],
+    [139228007, 29857009]
   ],
   "snomed_concepts": [
-    ["cold sensation quality", "cold - thermal agent", "common cold"],
-    ["pyrexia", "febrile"],
-    [
-      "pain in head",
-      "headache",
-      "headache (& [c/o])",
-      "feeling frustrated",
-      "irritation"
-    ]
+    ["difficulty breathing", "difficulty breathing", "difficulty breathing"],
+    ["chest pain", "chest pain"]
   ]
 }
 ```
@@ -73,24 +65,21 @@ curl -s -X POST \
      -H "Content-Type: application/json" \
      -d '{
            "snomed_concept_ids": [
-                [
-                  84162001,
-                  313094006,
-                  82272006
-                ],
-                [
-                  248425001,
-                  386661006
-                ],
-                [
-                  25064002,
-                  139490008,
-                  162209005,
-                  224973000,
-                  257553007,
-                  191667009
-                ]
-              ]
+            [
+              139200001,
+              161945003,
+              230145002
+            ],
+            [
+              139228007,
+              29857009
+            ]
+          ],
+          "symptoms_diseases": [
+            "light headed",
+            "difficulty breathing",
+            "chest pain"
+          ]
          }' \
      http://localhost:2180/generate_follow_up_questions_from_concepts | jq
 ```
@@ -99,58 +88,33 @@ curl -s -X POST \
 [
   {
     "snomed_concept_ids": [
-      84162001,
-      313094006,
-      82272006
+      139200001,
+      161945003,
+      230145002
     ],
     "snomed_concepts": [
-      "cold sensation quality",
-      "cold - thermal agent",
-      "common cold"
+      "difficulty breathing",
+      "difficulty breathing",
+      "difficulty breathing"
     ],
     "questions": [
-      "Do you have a sore throat?",
-      "Do you have a headache?",
-      "Do you have a runny nose?"
+      "Do you have a cough?",
+      "Do you have a fever?",
+      "Have you recently traveled abroad?"
     ]
   },
   {
     "snomed_concept_ids": [
-      248425001,
-      386661006
+      139228007,
+      29857009
     ],
     "snomed_concepts": [
-      "pyrexia",
-      "febrile"
+      "chest pain",
+      "chest pain"
     ],
     "questions": [
-      "Do you take any medications?",
-      "What is your age?"
-    ]
-  },
-  {
-    "snomed_concept_ids": [
-      25064002,
-      139490008,
-      162209005,
-      224973000,
-      257553007,
-      191667009
-    ],
-    "snomed_concepts": [
-      "pain in head",
-      "headache",
-      "headache (& [c/o])",
-      "feeling frustrated",
-      "irritation",
-      "paranoid psychosis"
-    ],
-    "questions": [
-      "Could you describe your pain in your head in more detail, perhaps using an example?",
-      "Is this a dull ache across your forehead, or perhaps a throbbing pain?",
-      "Do you think your headache is caused by lack of sleep?",
-      "Are you more frustrated than usual?",
-      "Do you feel like you're losing control of yourself?"
+      "Do you feel like you're having a heart attack?",
+      "Does this feel like a heart attack?"
     ]
   }
 ]
@@ -164,45 +128,133 @@ curl -s -X POST \
      -d '{
         "snomed_concept_ids": [
             [
-                84162001,
-                313094006,
-                82272006
-                248425001,
-                386661006
+              139200001,
+              161945003,
+              230145002
+            ],
+            [
+              139228007,
+              29857009
             ]
         ],
+        "symptoms_diseases": [
+          "light headed",
+          "difficulty breathing",
+          "chest pain"
+        ],
         "qa": {
-            "How long did the cough last?": "its still there",
-            "How long have you had the cold or cough?": "for the last 5 days",
-            "Has the temperature continued to rise?": "yes",
-            "Has the temperature stayed the same?": "no it keeps changing mostly it has risen"
+          "Do you have a cough?": "no",
+          "Do you have a fever?": "no",
+          "Have you recently traveled abroad?": "no",
+          "Do you feel like youre having a heart attack?": "i dont know",
+          "Does this feel like a heart attack?": "maybe i never had one before so dont know"
         }
     }' \
     http://localhost:2180/generate_summary_from_qa | jq
 ```
 
-```bash
+```json
 {
-    "cold - thermal agent",
-    "common cold",
-    "pyrexia",
-    "febrile"
+  "conditions": [
+    "difficulty breathing",
+    "difficulty breathing",
+    "difficulty breathing",
+    "chest pain",
+    "chest pain"
   ],
   "qa": {
-    "How long did the cough last?": "its still there",
-    "How long have you had the cold or cough?": "for the last 5 days",
-    "Has the temperature continued to rise?": "yes",
-    "Has the temperature stayed the same?": "no it keeps changing mostly it has risen"
+    "Do you have a cough?": "no",
+    "Do you have a fever?": "no",
+    "Have you recently traveled abroad?": "no",
+    "Do you feel like youre having a heart attack?": "i dont know",
+    "Does this feel like a heart attack?": "maybe i never had one before so dont know"
   },
-  "summary": "# In-Patient Report\n\n## Summary\n\n### Patient's Observations\n\nThe patient presented with the following complaints:\n\n- cold sensation quality\n- cold - thermal agent\n- common cold\n- pyrexia\n- febrile\n\n### Questions and Answers\n\nSubsequently, on further questioning, the patient had these to add on:\n\n- **Question**: How long did the cough last? \n  - **Answer**: its still there\n\n- **Question**: How long have you had the cold or cough? \n  - **Answer**: for the last 5 days\n\n- **Question**: Has the temperature continued to rise? \n  - **Answer**: yes\n\n- **Question**: Has the temperature stayed the same? \n  - **Answer**: no it keeps changing mostly it has risen\n\n## Recommended tests\n\n### Tests for diagnosis\n\n- Chest X-ray\n- Blood tests\n\n### Tests for exclusion\n\n- PET-CT\n\n## Diseases to check for and narrow down the cause\n\n- Bronchitis\n- Rhinitis\n- Upper Respiratory Infection\n- Chronic Obstructive Pulmonary Disease\n- Sinusitis",
-  "speciality": "### Department\n\nThe patient should visit the **Outpatient** department."
+  "summary": "# In-Patient Report
+
+  ## Summary
+
+  ### Patient's Observations
+
+  The patient presented with the following complaints:
+
+  ['light headed', 'difficulty breathing', 'chest pain']
+
+  of which these are the conditions identified from SNOMED:
+
+  - difficulty breathing
+  - difficulty breathing
+  - difficulty breathing
+  - chest pain
+  - chest pain
+
+  ### Questions and Answers
+
+  Subsequently, on further questioning, the patient had these to add on:
+
+  - **Question**: Do you have a cough?
+    - **Answer**: no
+
+  - **Question**: Do you have a fever?
+    - **Answer**: no
+
+  - **Question**: Have you recently traveled abroad?
+    - **Answer**: no
+
+  - **Question**: Do you feel like youre having a heart attack?
+    - **Answer**: i dont know
+
+  - **Question**: Does this feel like a heart attack?
+    - **Answer**: maybe i never had one before so dont know
+
+  ## Recommended tests
+
+
+  ### Tests for diagnosis
+
+  - Serum electrolytes
+  - Blood count
+  - chest x-ray
+
+  ### Tests for exclusion
+
+  - Serum electrolytes
+  - Blood count
+  - chest x-ray
+
+
+  ## Diseases to check for and narrow down the cause
+
+  - Pulmonary embolism
+  - Acute coronary syndrome
+  - Acute exacerbation of COPD
+  - Acute respiratory distress syndrome
+  - Acute chest syndrome
+  - Acute exacerbation of asthma
+  - Myocardial infarction
+  - Acute decompensated heart failure
+  - Acute exacerbation of heart failure
+  - Acute myocarditis
+  - Acute myocarditis",
+  "speciality": "### Department
+
+  The patient should visit the **Outpatient** department."
 }
 ```
 
 ### Generate snomed diagram
 
 ```bash
-http POST http://localhost:2180/generate_snomed_graph snomed_concepts:='[[84162001, 313094006, 82272006], [248425001, 386661006]]' --download
+http POST http://localhost:2180/generate_snomed_graph snomed_concepts:='[
+            [
+              139200001,
+              161945003,
+              230145002
+            ],
+            [
+              139228007,
+              29857009
+            ]
+        ]' --download
 ```
 
 ```
@@ -215,39 +267,46 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 
 Graph:
-like ice - sensation quality --[is a]--> cold sensation quality
-ice cold - sensation --[is a]--> cold sensation quality
-puo - pyrexia of unknown origin --[is a]--> febrile
-fever greater than 38 celsius --[is a]--> febrile
-cebpe-associated autoinflammation, immunodeficiency, neutrophil dysfunction syndrome --[associated with]--> febrile
-fever with rigors --[is a]--> febrile
-fever caused by virus --[is a]--> febrile
-febrile transfusion reaction --[is a]--> febrile
-education about managing fever --[has focus]--> febrile
-low grade fever --[is a]--> febrile
-nlrc4-related autoinflammatory syndrome with macrophage activation syndrome --[associated with]--> febrile
-fever of newborn --[is a]--> febrile
-thrombocytopenia, anasarca, fever, renal insufficiency, organomegaly syndrome --[is a]--> febrile
-postpartum fever --[is a]--> febrile
-chronic fever --[is a]--> febrile
-finding of pattern of fever --[is a]--> febrile
-paraneoplastic fever --[is a]--> febrile
-cough with fever --[is a]--> febrile
-fever caused by severe acute respiratory syndrome coronavirus 2 --[is a]--> febrile
-febrile proteinuria --[associated with]--> febrile
-aseptic fever --[is a]--> febrile
-postprocedural fever --[is a]--> febrile
-maternal pyrexia --[associated finding]--> febrile
-maternal pyrexia during labor --[is a]--> febrile
-fever due to infection --[is a]--> febrile
-treatment of fever --[has focus]--> febrile
-sweating fever --[is a]--> febrile
-fever-associated acute infantile liver failure syndrome --[following]--> febrile
-hyperpyrexia --[is a]--> febrile
-bancroftian filarial fever --[is a]--> febrile
-apyrexial --[associated finding]--> febrile
-malayan filarial fever --[is a]--> febrile
-sweet's disease caused by drug --[associated with]--> febrile
+dyspnea --[is a]--> difficulty breathing
+winded --[is a]--> difficulty breathing
+labored breathing --[is a]--> difficulty breathing
+respiratory distress --[is a]--> difficulty breathing
+cannot blow --[is a]--> difficulty breathing
+radiating chest pain --[is a]--> chest pain
+microvascular angina --[is a]--> chest pain
+pain of breast --[is a]--> chest pain
+parasternal pain --[is a]--> chest pain
+right sided chest pain --[is a]--> chest pain
+assessment of chest pain --[has focus]--> chest pain
+left sided chest pain --[is a]--> chest pain
+thoracic back pain --[is a]--> chest pain
+burning chest pain --[is a]--> chest pain
+ischemic chest pain --[is a]--> chest pain
+chest pain not present --[associated finding]--> chest pain
+chest pain due to pericarditis --[is a]--> chest pain
+crushing chest pain --[is a]--> chest pain
+chest pain at rest --[is a]--> chest pain
+localized chest pain --[is a]--> chest pain
+retrosternal pain --[is a]--> chest pain
+history of chest pain --[associated finding]--> chest pain
+dull chest pain --[is a]--> chest pain
+chest pain on breathing --[is a]--> chest pain
+chronic chest pain --[is a]--> chest pain
+pleuritic pain --[is a]--> chest pain
+atypical chest pain --[is a]--> chest pain
+musculoskeletal chest pain --[is a]--> chest pain
+intercostal neuralgia --[is a]--> chest pain
+upper chest pain --[is a]--> chest pain
+angina --[is a]--> chest pain
+noncardiac chest pain --[is a]--> chest pain
+chest wall pain --[is a]--> chest pain
+cardiac chest pain --[is a]--> chest pain
+pleuropericardial chest pain --[is a]--> chest pain
+precordial pain --[is a]--> chest pain
+chest pain on exertion --[is a]--> chest pain
+squeezing chest pain --[is a]--> chest pain
+acute chest pain --[is a]--> chest pain
+esophageal chest pain --[is a]--> chest pain
 
 --===============0359621490805120141==
 Content-Type: application/octet-stream; Name="image.png"

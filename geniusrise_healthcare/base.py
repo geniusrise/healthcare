@@ -55,6 +55,7 @@ def find_symptoms_diseases(
         closest_nodes = find_semantically_similar_nodes(
             faiss_index=faiss_index, embedding=embeddings, cutoff_score=semantic_similarity_cutoff
         )
+        closest_nodes = list(set(closest_nodes))
         if len(closest_nodes) > 0:
             snomed_concept_ids.append([int(x[0]) for x in closest_nodes])
 
@@ -68,6 +69,7 @@ def find_symptoms_diseases(
 
 def generate_follow_up_questions_from_concepts(
     snomed_concept_ids: List[List[int]],
+    symptoms_diseases: List[str],
     tokenizer: AutoTokenizer,
     model: GenerationMixin,
     concept_id_to_concept: Dict[str, str],
@@ -95,6 +97,7 @@ def generate_follow_up_questions_from_concepts(
             tokenizer=tokenizer,
             model=model,
             data=conditions,
+            symptoms_diseases=symptoms_diseases,
             decoding_strategy=decoding_strategy,
             **generation_params,
         )
@@ -112,6 +115,7 @@ def generate_follow_up_questions_from_concepts(
 def generate_summary_from_qa(
     snomed_concept_ids: List[List[int]],
     qa: Dict[str, str],
+    symptoms_diseases: List[str],
     tokenizer: AutoTokenizer,
     model: GenerationMixin,
     concept_id_to_concept: Dict[str, str],
@@ -139,6 +143,7 @@ def generate_summary_from_qa(
         model=model,
         conditions=snomed_concepts,
         qa=qa,
+        symptoms_diseases=symptoms_diseases,
         decoding_strategy=decoding_strategy,
         **generation_params,
     )
