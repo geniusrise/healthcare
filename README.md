@@ -14,10 +14,10 @@
 ```bash
 LOGLEVEL=DEBUG genius InPatientAPI rise\
     batch \
-        --input_s3_bucket geniusrise-test \
-        --input_s3_folder train \
+        --input_s3_bucket geniusrise-test-healthcare \
+        --input_s3_folder snomed-graph \
     batch \
-        --output_s3_bucket geniusrise-test \
+        --output_s3_bucket geniusrise-test-healthcare \
         --output_s3_folder model \
     none \
     listen \
@@ -39,7 +39,7 @@ LOGLEVEL=DEBUG genius InPatientAPI rise\
 ```bash
 curl -s -X POST \
      -H "Content-Type: application/json" \
-     -d '{"user_input": "i have been feeling a bit cold and i think i have a fever and a light headache"}' \
+     -d '{"user_input": "i feel a bit light headed and have some difficulty breathing and a little pain in my chest"}' \
      http://localhost:2180/find_symptoms_diseases | jq
 ```
 

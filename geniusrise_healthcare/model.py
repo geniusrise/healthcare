@@ -104,6 +104,7 @@ def load_huggingface_model(
     quantize_save_dir: str = "./quantized_model",
     device_map: str | Dict | None = "auto",
     max_memory={0: "24GB"},
+    torchscript: bool = True,
     **model_args: Any,
 ) -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
     """
@@ -159,7 +160,7 @@ def load_huggingface_model(
         model = ModelClass.from_pretrained(
             quantize_save_dir,
             torch_dtype=torch_dtype,
-            torchscript=True,
+            torchscript=torchscript,
             max_memory=max_memory,
             device_map=device_map,
             **model_args,
@@ -179,7 +180,7 @@ def load_huggingface_model(
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 torch_dtype=torch_dtype,
-                torchscript=True,
+                torchscript=torchscript,
                 max_memory=max_memory,
                 device_map=device_map,
                 **model_args,

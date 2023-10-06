@@ -94,7 +94,7 @@ class InPatientAPI(Bolt):
         data = cherrypy.request.json
         user_input = data.get("user_input", "")
         type_ids_filter = data.get("type_ids_filter", [])
-        semantic_similarity_cutoff = data.get("semantic_similarity_cutoff", 0.1)
+        semantic_similarity_cutoff = data.get("semantic_similarity_cutoff", 0.3)
         return find_symptoms_diseases(
             user_input=user_input,
             tokenizer=self.tokenizer,
@@ -120,7 +120,7 @@ class InPatientAPI(Bolt):
         snomed_concept_ids = data.get("snomed_concept_ids", [])
         decoding_strategy = data.get("decoding_strategy", "generate")
         generation_params = data.get(
-            "generation_params", {"temperature": 0.7, "do_sample": True, "max_new_tokens": 200}
+            "generation_params", {"temperature": 0.7, "do_sample": True, "max_new_tokens": 1000}
         )
         return generate_follow_up_questions_from_concepts(
             snomed_concept_ids=snomed_concept_ids,
@@ -145,7 +145,7 @@ class InPatientAPI(Bolt):
         qa = data.get("qa", {})
         decoding_strategy = data.get("decoding_strategy", "generate")
         generation_params = data.get(
-            "generation_params", {"temperature": 0.7, "do_sample": True, "max_new_tokens": 250}
+            "generation_params", {"temperature": 0.7, "do_sample": True, "max_new_tokens": 1000}
         )
         return generate_summary_from_qa(
             snomed_concept_ids=snomed_concept_ids,

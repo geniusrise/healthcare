@@ -75,10 +75,9 @@ def find_semantically_similar_nodes(
     # Filter nodes based on the cutoff score and whether they exist in the graph
     closest_nodes = []
     for distance, closest_node_id in zip(distances[0], closest_node_ids[0]):
-        similarity_score = 1 / (1 + distance)  # Convert distance to similarity
         closest_node_id_str = str(closest_node_id)
-        if similarity_score >= cutoff_score:
-            closest_nodes.append((closest_node_id_str, similarity_score))
+        if distance <= cutoff_score:
+            closest_nodes.append((closest_node_id_str, distance))
 
     log.debug(f"Found {len(closest_nodes)} closest nodes for node.")
     return closest_nodes
@@ -224,7 +223,7 @@ def find_related_subgraphs(
     model,
     tokenizer,
     concept_id_to_concept: dict,
-    cutoff_score: float = 0.1,
+    cutoff_score: float = 0.99,
     semantic_types: Union[None, str, List[str]] = None,
     stop_at_semantic_types: Union[None, str, List[str]] = None,
     max_depth: int = 3,

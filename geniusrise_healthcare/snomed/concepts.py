@@ -63,6 +63,7 @@ def process_concept_file(
                         fsns.append(fsn_without_tag)
                         if not set_device:
                             model.to(device)
+                            set_device = True
 
                         batch_ids.append(int(concept_id))
                         batch_count += 1
