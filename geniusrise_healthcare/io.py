@@ -126,10 +126,10 @@ def load_faiss_index(file_path: str, use_cuda: bool = False) -> Union[faiss.Inde
 
     Parameters:
     - file_path (str): The file path from which to load the FAISS index.
-    - use_cuda (bool): Whether to load the FAISS index on GPU. Default is False.
+    - use_cuda (bool, optional): Whether to load the FAISS index on GPU. Default is False.
 
     Returns:
-    faiss.Index or faiss.IndexIDMap: The loaded FAISS index.
+    Union[faiss.Index, faiss.IndexIDMap]: The loaded FAISS index.
     """
     log.info(f"Loading FAISS index from {file_path}")
 
