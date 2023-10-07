@@ -24,7 +24,7 @@ genius InPatientAPI rise\
         --args \
             endpoint="*" \
             port=2180 \
-            llm_model="/run/media/ixaxaar/models_q/CodeLlama-34B-Python-GPTQ" \
+            llm_model="/run/media/ixaxaar/models_q/Llama-2-13B-GPTQ" \
             ner_model="emilyalsentzer/Bio_ClinicalBERT" \
             networkx_graph="./saved/snomed.graph" \
             faiss_index="./saved/faiss.index.Bio_ClinicalBERT" \
@@ -38,21 +38,51 @@ genius InPatientAPI rise\
 
 ```bash
 curl -s -X POST \
-     -H "Content-Type: application/json" \
-     -d '{"user_input": "i feel a bit light headed and have some difficulty breathing and some chest pain"}' \
-     http://localhost:2180/find_symptoms_diseases | jq
+    -H "Content-Type: application/json" \
+    -d '{"user_input": "i feel a bit light headed and have some difficulty breathing and some pain in chest"}' \
+    http://localhost:2180/api/v1/ner | jq
 ```
 
 ```json
 {
-  "query": "i feel a bit light headed and have some difficulty breathing and some chest pain",
-  "symptoms_diseases": ["light headed", "difficulty breathing", "chest pain"],
+  "query": "i feel a bit light headed and have some difficulty breathing and some pain in chest",
+  "symptoms_diseases": ["light headed", "difficulty breathing", "pain in chest"]
+}
+```
+
+### Semantic search symptoms and diseases in SNOMED-CT
+
+```bash
+curl -s -X POST \
+    -H "Content-Type: application/json" \
+    -d '{
+      "user_input": "i feel a bit light headed and have some difficulty breathing and some pain in chest",
+      "symptoms_diseases": [
+        "light headed",
+        "difficulty breathing",
+        "pain in chest"
+      ],
+      "semantic_similarity_cutoff": 0.9
+    }' \
+    http://localhost:2180/api/v1/semantic_search | jq
+```
+
+```json
+{
+  "query": "i feel a bit light headed and have some difficulty breathing and some pain in chest",
+  "symptoms_diseases": [
+    "light headed",
+    "difficulty breathing",
+    "pain in chest"
+  ],
   "snomed_concept_ids": [
-    [139200001, 161945003, 230145002],
-    [139228007, 29857009]
+    [371268001, 22601002, 56242006],
+    [230145002, 161945003],
+    [29857009, 139228007]
   ],
   "snomed_concepts": [
-    ["difficulty breathing", "difficulty breathing", "difficulty breathing"],
+    ["light", "light (weight)", "light, electromagnetic radiation"],
+    ["difficulty breathing", "difficulty breathing"],
     ["chest pain", "chest pain"]
   ]
 }
@@ -62,9 +92,89 @@ curl -s -X POST \
 
 ```bash
 curl -s -X POST \
+    -H "Content-Type: application/json" \
+    -d '{
+      "symptoms_diseases": [
+        "light headed",
+        "difficulty breathing",
+        "pain in chest"
+      ],
+      "snomed_concept_ids": [
+        [
+          371268001,
+          22601002,
+          56242006
+        ],
+        [
+          230145002,
+          161945003
+        ],
+        [
+          29857009,
+          139228007
+        ]
+      ]
+    }' \
+    http://localhost:2180/api/v1/follow_up | jq
+```
+
+```bash
+[
+  {
+    "snomed_concept_ids": [
+      371268001,
+      22601002,
+      56242006
+    ],
+    "snomed_concepts": [
+      "light",
+      "light (weight)",
+      "light, electromagnetic radiation"
+    ],
+    "questions": [
+      "Do you feel lightheaded?",
+      "Do you feel dizzy?",
+      "Do you feel nauseous?"
+    ]
+  },
+  {
+    "snomed_concept_ids": [
+      230145002,
+      161945003
+    ],
+    "snomed_concepts": [
+      "difficulty breathing",
+      "difficulty breathing"
+    ],
+    "questions": [
+      "How long have you had difficulty breathing?",
+      "Is the pain in your chest constant, or does it come and go?"
+    ]
+  },
+  {
+    "snomed_concept_ids": [
+      29857009,
+      139228007
+    ],
+    "snomed_concepts": [
+      "chest pain",
+      "chest pain"
+    ],
+    "questions": [
+      "When did you first notice the symptoms?",
+      "Are you allergic to any medication?"
+    ]
+  }
+]
+```
+
+### Generate final summary report
+
+```bash
+curl -s -X POST \
      -H "Content-Type: application/json" \
      -d '{
-           "snomed_concept_ids": [
+          "snomed_concept_ids": [
             [
               139200001,
               161945003,
@@ -79,78 +189,18 @@ curl -s -X POST \
             "light headed",
             "difficulty breathing",
             "chest pain"
-          ]
-         }' \
-     http://localhost:2180/generate_follow_up_questions_from_concepts | jq
-```
-
-```bash
-[
-  {
-    "snomed_concept_ids": [
-      139200001,
-      161945003,
-      230145002
-    ],
-    "snomed_concepts": [
-      "difficulty breathing",
-      "difficulty breathing",
-      "difficulty breathing"
-    ],
-    "questions": [
-      "Do you have a cough?",
-      "Do you have a fever?",
-      "Have you recently traveled abroad?"
-    ]
-  },
-  {
-    "snomed_concept_ids": [
-      139228007,
-      29857009
-    ],
-    "snomed_concepts": [
-      "chest pain",
-      "chest pain"
-    ],
-    "questions": [
-      "Do you feel like you're having a heart attack?",
-      "Does this feel like a heart attack?"
-    ]
-  }
-]
-```
-
-### Generate final summary report
-
-```bash
-curl -s -X POST \
-     -H "Content-Type: application/json" \
-     -d '{
-        "snomed_concept_ids": [
-            [
-              139200001,
-              161945003,
-              230145002
-            ],
-            [
-              139228007,
-              29857009
-            ]
-        ],
-        "symptoms_diseases": [
-          "light headed",
-          "difficulty breathing",
-          "chest pain"
-        ],
-        "qa": {
-          "Do you have a cough?": "no",
-          "Do you have a fever?": "no",
-          "Have you recently traveled abroad?": "no",
-          "Do you feel like youre having a heart attack?": "i dont know",
-          "Does this feel like a heart attack?": "maybe i never had one before so dont know"
-        }
-    }' \
-    http://localhost:2180/generate_summary_from_qa | jq
+          ],
+          "qa": {
+            "Do you feel lightheaded?": "yes",
+            "Do you feel dizzy?": "a little bit",
+            "Do you feel nauseous?": "no",
+            "How long have you had difficulty breathing?": "for the past 2 days",
+            "Is the pain in your chest constant, or does it come and go?": "it comes and goes",
+            "When did you first notice the symptoms?": "yesterday",
+            "Are you allergic to any medication?": "not that i know of"
+          }
+        }' \
+    http://localhost:2180/api/v1/summary | jq
 ```
 
 ```json
@@ -163,11 +213,13 @@ curl -s -X POST \
     "chest pain"
   ],
   "qa": {
-    "Do you have a cough?": "no",
-    "Do you have a fever?": "no",
-    "Have you recently traveled abroad?": "no",
-    "Do you feel like youre having a heart attack?": "i dont know",
-    "Does this feel like a heart attack?": "maybe i never had one before so dont know"
+    "Do you feel lightheaded?": "yes",
+    "Do you feel dizzy?": "a little bit",
+    "Do you feel nauseous?": "no",
+    "How long have you had difficulty breathing?": "for the past 2 days",
+    "Is the pain in your chest constant, or does it come and go?": "it comes and goes",
+    "When did you first notice the symptoms?": "yesterday",
+    "Are you allergic to any medication?": "not that i know of"
   },
   "summary": "# In-Patient Report
 
@@ -191,50 +243,55 @@ curl -s -X POST \
 
   Subsequently, on further questioning, the patient had these to add on:
 
-  - **Question**: Do you have a cough?
+  - **Question**: Do you feel lightheaded?
+    - **Answer**: yes
+
+  - **Question**: Do you feel dizzy?
+    - **Answer**: a little bit
+
+  - **Question**: Do you feel nauseous?
     - **Answer**: no
 
-  - **Question**: Do you have a fever?
-    - **Answer**: no
+  - **Question**: How long have you had difficulty breathing?
+    - **Answer**: for the past 2 days
 
-  - **Question**: Have you recently traveled abroad?
-    - **Answer**: no
+  - **Question**: Is the pain in your chest constant, or does it come and go?
+    - **Answer**: it comes and goes
 
-  - **Question**: Do you feel like youre having a heart attack?
-    - **Answer**: i dont know
+  - **Question**: When did you first notice the symptoms?
+    - **Answer**: yesterday
 
-  - **Question**: Does this feel like a heart attack?
-    - **Answer**: maybe i never had one before so dont know
+  - **Question**: Are you allergic to any medication?
+    - **Answer**: not that i know of
 
   ## Recommended tests
 
-
   ### Tests for diagnosis
 
-  - Serum electrolytes
-  - Blood count
-  - chest x-ray
+  - blood test
+  - blood test
+  - blood test
+  - X-ray
+  - X-ray
+  - X-ray
 
   ### Tests for exclusion
 
-  - Serum electrolytes
-  - Blood count
-  - chest x-ray
-
+  - blood test
+  - blood test
+  - blood test
+  - X-ray
+  - X-ray
+  - X-ray
 
   ## Diseases to check for and narrow down the cause
 
-  - Pulmonary embolism
-  - Acute coronary syndrome
-  - Acute exacerbation of COPD
-  - Acute respiratory distress syndrome
-  - Acute chest syndrome
-  - Acute exacerbation of asthma
-  - Myocardial infarction
-  - Acute decompensated heart failure
-  - Acute exacerbation of heart failure
-  - Acute myocarditis
-  - Acute myocarditis",
+  - heart attack
+  - heart attack
+  - heart attack
+  - lung cancer
+  - lung cancer
+  - lung cancer",
   "speciality": "### Department
 
   The patient should visit the **Outpatient** department."
@@ -244,17 +301,19 @@ curl -s -X POST \
 ### Generate snomed diagram
 
 ```bash
-http POST http://localhost:2180/generate_snomed_graph snomed_concepts:='[
-            [
-              139200001,
-              161945003,
-              230145002
-            ],
-            [
-              139228007,
-              29857009
-            ]
-        ]' --download
+http POST http://localhost:2180/api/v1/graph snomed_concepts:='
+[
+  [
+    139200001,
+    161945003,
+    230145002
+  ],
+  [
+    139228007,
+    29857009
+  ]
+]
+' --download
 ```
 
 ```

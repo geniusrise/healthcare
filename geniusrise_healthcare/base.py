@@ -7,7 +7,7 @@ import pandas as pd
 from transformers import AutoTokenizer, GenerationMixin
 
 import faiss  # type: ignore
-from geniusrise_healthcare.model import generate_embeddings
+from geniusrise_healthcare.model import generate_permutation_embeddings
 from geniusrise_healthcare.ner import annotate_snomed
 from geniusrise_healthcare.qa import generate_follow_up_questions
 from geniusrise_healthcare.search import find_adjacent_nodes, find_semantically_similar_nodes
@@ -18,46 +18,87 @@ from geniusrise_healthcare.util import draw_subgraph
 log = logging.getLogger(__file__)
 
 
-def find_symptoms_diseases(
+def ner(
     user_input: str,
-    tokenizer: AutoTokenizer,
-    model: GenerationMixin,
-    ner_model: Any,
-    ner_tokenizer: Any,
-    concept_id_to_concept: Dict[str, str],
+    model: Any,
+    tokenizer: Any,
     type_ids_filter: List[str],
-    faiss_index: faiss.IndexIDMap,  # type: ignore
-    semantic_similarity_cutoff: float = 0.1,
+    symptoms_and_diseases: list[str],
 ) -> Dict[str, Any]:
     """
-    Find symptoms and diseases based on user input and return related SNOMED concepts.
+    Perform Named Entity Recognition (NER) to identify symptoms and diseases from user input.
 
     Parameters:
     - user_input (str): The user's input text.
-    - tokenizer (AutoTokenizer): The Hugging Face tokenizer instance.
-    - model (GenerationMixin): The Hugging Face model instance.
-    - ner_model (Any): The NER model.
-    - ner_tokenizer (Any): The NER tokenizer.
+    - model (Any): The NER model.
+    - tokenizer (Any): The tokenizer for the NER model.
     - type_ids_filter (List[str]): List of type IDs to filter annotations.
-    - faiss_index (faiss.IndexIDMap): The FAISS index.
+    - symptoms_and_diseases (List[str]): List of symptoms and diseases found earlier.
+
+    Returns:
+    - Dict[str, Any]: A dictionary containing the query and identified symptoms and diseases.
+    """
+    data = pd.DataFrame({"text": [user_input]})
+    annotations = annotate_snomed(
+        "llm",
+        tokenizer=tokenizer,
+        model=model,
+        data=data,
+        type_ids_filter=type_ids_filter,
+        max_new_tokens=25,
+    )
+    _symptoms_and_diseases = [x["snomed"] for x in annotations[0]["annotations"]]
+    symptoms_and_diseases.extend(_symptoms_and_diseases)
+
+    return {
+        "query": user_input,
+        "symptoms_diseases": symptoms_and_diseases,
+    }
+
+
+def semantic_search_snomed(
+    user_input: str,
+    symptoms_and_diseases: List[str],
+    ner_model: Any,
+    ner_tokenizer: Any,
+    concept_id_to_concept: Dict[str, str],
+    faiss_index: faiss.IndexIDMap,  # type: ignore
+    semantic_similarity_cutoff: float = 0.9,
+    top_k: int = 3,
+    use_cuda: bool = False,
+) -> Dict[str, Any]:
+    """
+    Perform semantic search to find related SNOMED concepts based on symptoms and diseases identified from user input.
+
+    Parameters:
+    - user_input (str): The user's input text.
+    - symptoms_and_diseases (List[str]): List of symptoms and diseases to search.
+    - ner_model (Any): The NER model used for generating embeddings.
+    - ner_tokenizer (Any): The tokenizer for the NER model.
+    - concept_id_to_concept (Dict[str, str]): Mapping from concept IDs to concepts.
+    - faiss_index (faiss.IndexIDMap): The FAISS index for semantic search.
     - semantic_similarity_cutoff (float, optional): The similarity score below which nodes will be ignored.
+    - top_k (int, optional): The number of top-k closest nodes to consider for each symptom or disease.
 
     Returns:
     - Dict[str, Any]: A dictionary containing the query, symptoms, diseases, and related SNOMED concepts.
     """
-    data = pd.DataFrame({"text": [user_input]})
-    annotations = annotate_snomed("llm", tokenizer, model, data, type_ids_filter, max_new_tokens=25)
-    symptoms_and_diseases = [x["snomed"] for x in annotations[0]["annotations"]]
-
     snomed_concept_ids = []
+
     for node in symptoms_and_diseases:
-        embeddings = generate_embeddings(term=node, tokenizer=ner_tokenizer, model=ner_model)
-        closest_nodes = find_semantically_similar_nodes(
-            faiss_index=faiss_index, embedding=embeddings, cutoff_score=semantic_similarity_cutoff
+        embeddings_with_length = generate_permutation_embeddings(
+            sentence=node, model=ner_model, tokenizer=ner_tokenizer
         )
-        closest_nodes = list(set(closest_nodes))
+
+        closest_nodes = find_semantically_similar_nodes(
+            faiss_index=faiss_index,
+            embeddings_with_length=embeddings_with_length,
+            cutoff_score=semantic_similarity_cutoff,
+        )
+
         if len(closest_nodes) > 0:
-            snomed_concept_ids.append([int(x[0]) for x in closest_nodes])
+            closest_nodes = closest_nodes[:top_k]
+            snomed_concept_ids.append(list(set([int(x[0]) for x in closest_nodes])))
 
     return {
         "query": user_input,

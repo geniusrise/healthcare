@@ -12,7 +12,8 @@ from geniusrise import BatchInput, BatchOutput, Bolt, State
 from transformers import AutoModel, AutoTokenizer
 
 from geniusrise_healthcare.base import (
-    find_symptoms_diseases,
+    ner,
+    semantic_search_snomed,
     generate_follow_up_questions_from_concepts,
     generate_snomed_graph_from_concepts,
     generate_summary_from_qa,
@@ -59,7 +60,7 @@ class InPatientAPI(Bolt):
         log.warn(f"Loading graph {networkx_graph}")
         self.G = load_networkx_graph(networkx_graph)
         log.warn(f"Loading FAISS index {faiss_index}")
-        self.faiss_index = load_faiss_index(faiss_index)
+        self.faiss_index = load_faiss_index(faiss_index, use_cuda=True)
         log.warn(f"Loading lookup dictionaries {concept_id_to_concept} {description_id_to_concept}")
         self.concept_id_to_concept = load_concept_dict(concept_id_to_concept)
         self.description_id_to_concept = load_concept_dict(description_id_to_concept)
@@ -88,32 +89,48 @@ class InPatientAPI(Bolt):
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
     @cherrypy.tools.allow(methods=["POST"])
-    def find_symptoms_diseases(self, username: Optional[str] = None, password: Optional[str] = None) -> Dict[str, Any]:
+    def ner(self, username: Optional[str] = None, password: Optional[str] = None) -> Dict[str, Any]:
         if username and password:
             self._check_auth(username=username, password=password)
         data = cherrypy.request.json
         user_input = data.get("user_input", "")
+        symptoms_diseases = data.get("symptoms_diseases", [])
         type_ids_filter = data.get("type_ids_filter", [])
-        semantic_similarity_cutoff = data.get("semantic_similarity_cutoff", 0.6)
-        return find_symptoms_diseases(
+        return ner(
             user_input=user_input,
-            tokenizer=self.tokenizer,
             model=self.model,
-            ner_model=self.ner_model,
-            ner_tokenizer=self.ner_tokenizer,
-            concept_id_to_concept=self.concept_id_to_concept,
+            tokenizer=self.tokenizer,
             type_ids_filter=type_ids_filter,
-            faiss_index=self.faiss_index,
-            semantic_similarity_cutoff=semantic_similarity_cutoff,
+            symptoms_and_diseases=symptoms_diseases,
         )
 
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
     @cherrypy.tools.allow(methods=["POST"])
-    def generate_follow_up_questions_from_concepts(
-        self, username: Optional[str] = None, password: Optional[str] = None
-    ) -> List[Dict]:
+    def semantic_search(self, username: Optional[str] = None, password: Optional[str] = None) -> Dict[str, Any]:
+        if username and password:
+            self._check_auth(username=username, password=password)
+        data = cherrypy.request.json
+        user_input = data.get("user_input", "")
+        symptoms_diseases = data.get("symptoms_diseases", [])
+        semantic_similarity_cutoff = data.get("semantic_similarity_cutoff", 0.6)
+        return semantic_search_snomed(
+            user_input=user_input,
+            symptoms_and_diseases=symptoms_diseases,
+            ner_model=self.ner_model,
+            ner_tokenizer=self.ner_tokenizer,
+            faiss_index=self.faiss_index,
+            concept_id_to_concept=self.concept_id_to_concept,
+            semantic_similarity_cutoff=semantic_similarity_cutoff,
+            use_cuda=True,
+        )
+
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    @cherrypy.tools.allow(methods=["POST"])
+    def follow_up(self, username: Optional[str] = None, password: Optional[str] = None) -> List[Dict]:
         if username and password:
             self._check_auth(username=username, password=password)
         data = cherrypy.request.json
@@ -143,9 +160,7 @@ class InPatientAPI(Bolt):
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
     @cherrypy.tools.allow(methods=["POST"])
-    def generate_summary_from_qa(
-        self, username: Optional[str] = None, password: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def summary(self, username: Optional[str] = None, password: Optional[str] = None) -> Dict[str, Any]:
         if username and password:
             self._check_auth(username=username, password=password)
         data = cherrypy.request.json
@@ -176,7 +191,7 @@ class InPatientAPI(Bolt):
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.allow(methods=["POST"])
-    def generate_snomed_graph(self, username: Optional[str] = None, password: Optional[str] = None) -> None:
+    def graph(self, username: Optional[str] = None, password: Optional[str] = None) -> None:
         if username and password:
             self._check_auth(username=username, password=password)
         data = cherrypy.request.json
@@ -254,6 +269,6 @@ class InPatientAPI(Bolt):
                 "log.screen": False,
             }
         )
-        cherrypy.tree.mount(self, "/")
+        cherrypy.tree.mount(self, "/api/v1/")
         cherrypy.engine.start()
         cherrypy.engine.block()

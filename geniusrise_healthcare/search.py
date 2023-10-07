@@ -5,6 +5,7 @@ import networkx as nx
 import numpy as np
 
 import faiss
+import torch
 from geniusrise_healthcare.constants import SEMANTIC_TAGS
 from geniusrise_healthcare.model import generate_embeddings
 
@@ -56,28 +57,50 @@ def find_adjacent_nodes(
 
 
 def find_semantically_similar_nodes(
-    faiss_index: faiss.IndexIDMap, embedding: np.ndarray, cutoff_score: float  # type: ignore
-) -> List[Tuple[str, float]]:
+    faiss_index: faiss.IndexIDMap,  # type: ignore
+    embeddings_with_length: Union[
+        np.ndarray, torch.Tensor, List[Tuple[np.ndarray, int]], List[Tuple[torch.Tensor, int]]
+    ],
+    cutoff_score: float,
+    use_cuda: bool = False,
+    top_k: int = 10,
+) -> List[Tuple[str, float, int]]:
     """
-    Finds the closest nodes to a given node embedding using a FAISS index.
+    Finds the closest nodes to a given list of node embeddings using a FAISS index and ranks them based on length.
 
     Parameters:
     - faiss_index (faiss.IndexIDMap): The FAISS index containing the embeddings.
-    - embedding (np.ndarray): The vector embedding for which to find the closest nodes.
+    - embeddings_with_length (Union[np.ndarray, List[Tuple[np.ndarray, int]]]): Either a single ndarray or a list of tuples containing the vector embeddings and their lengths.
     - cutoff_score (float): The similarity score below which nodes will be ignored.
+    - use_cuda (bool, optional): Whether to use CUDA for GPU acceleration. Default is False.
 
     Returns:
-    List[Tuple[str, float]]: A list of tuples containing the closest node IDs and their similarity scores.
+    List[Tuple[str, float, int]]: A list of tuples containing the closest node IDs, their similarity scores, and the length of the match.
     """
-    # Search for the closest nodes in the FAISS index
-    distances, closest_node_ids = faiss_index.search(embedding, faiss_index.ntotal)
-
-    # Filter nodes based on the cutoff score and whether they exist in the graph
     closest_nodes = []
-    for distance, closest_node_id in zip(distances[0], closest_node_ids[0]):
-        closest_node_id_str = str(closest_node_id)
-        if distance <= cutoff_score:
-            closest_nodes.append((closest_node_id_str, distance))
+
+    if isinstance(embeddings_with_length, np.ndarray) or isinstance(embeddings_with_length, torch.Tensor):
+        # Handle single ndarray case
+        distances, closest_node_ids = faiss_index.search(
+            np.expand_dims(embeddings_with_length, axis=0) if not use_cuda else embeddings_with_length.unsqueeze(0),  # type: ignore
+            faiss_index.ntotal,
+        )
+        for distance, closest_node_id in zip(distances[0], closest_node_ids[0]):
+            closest_node_id_str = str(closest_node_id)
+            if distance <= cutoff_score:
+                closest_nodes.append((closest_node_id_str, distance, 1))
+    else:
+        for embedding, length in embeddings_with_length:
+            # Search for the closest nodes in the FAISS index
+            distances, closest_node_ids = faiss_index.search(embedding, top_k)
+
+            for distance, closest_node_id in zip(distances[0], closest_node_ids[0]):
+                closest_node_id_str = str(closest_node_id)
+                if distance <= cutoff_score:
+                    closest_nodes.append((closest_node_id_str, distance, length))
+
+    # Sort by length of the match
+    closest_nodes.sort(key=lambda x: x[2], reverse=True)
 
     log.debug(f"Found {len(closest_nodes)} closest nodes for node.")
     return closest_nodes
@@ -257,7 +280,7 @@ def find_related_subgraphs(
     for term in user_terms:
         embeddings = generate_embeddings(term, model, tokenizer)
         similar_nodes = find_semantically_similar_nodes(faiss_index, embeddings, cutoff_score=cutoff_score)
-        semantically_similar_nodes.extend([int(node) for node, _ in similar_nodes])
+        semantically_similar_nodes.extend([int(node[0]) for node in similar_nodes])
 
     log.info(f"Semantically similar nodes: {semantically_similar_nodes}")
 

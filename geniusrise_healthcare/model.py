@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple, Union
-from itertools import combinations
+from itertools import combinations, permutations
 
 import numpy as np
 import torch
@@ -105,7 +105,7 @@ def load_huggingface_model(
     quantize_save_dir: str = "./quantized_model",
     device_map: str | Dict | None = "auto",
     max_memory={0: "24GB"},
-    torchscript: bool = True,
+    torchscript: bool = False,
     **model_args: Any,
 ) -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
     """
@@ -345,6 +345,73 @@ def generate_combination_embeddings(
     embeddings_list = []
 
     for comb_term in all_combinations:
+        # Generate inputs
+        inputs = tokenizer(comb_term, return_tensors="pt")
+
+        # Move inputs to the same device as the model
+        inputs = {k: v.to(model.device) for k, v in inputs.items()}
+
+        # Generate outputs
+        with torch.no_grad():  # Deactivate autograd to reduce memory usage
+            outputs = model(**inputs)
+
+        # Extract embeddings
+        if isinstance(outputs, dict):
+            embeddings = outputs.get(output_key, None)
+        elif isinstance(outputs, tuple):
+            embeddings = outputs[0]
+        else:
+            raise ValueError("Unsupported model output type")
+
+        if embeddings is None:
+            raise ValueError(f"Could not find key '{output_key}' in model outputs")
+
+        # Average along the sequence length dimension
+        embeddings = embeddings.mean(dim=1)
+
+        # Move to CPU and convert to NumPy
+        if not use_cuda:
+            embeddings = embeddings.cpu().numpy()
+
+        # Append embeddings and term length to the list
+        embeddings_list.append((embeddings, len(comb_term.split())))
+
+    return embeddings_list
+
+
+def generate_permutation_embeddings(
+    sentence: str,
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizer,
+    output_key: str = "last_hidden_state",
+    use_cuda: bool = False,
+) -> List[Tuple[np.ndarray, int]]:
+    """
+    Generates embeddings for all permutations of words in a given term using a model.
+
+    Parameters:
+    - term (str): The term for which to generate the embeddings. Can contain multiple words separated by space.
+    - model (PreTrainedModel): The model to use for generating embeddings.
+    - tokenizer (PreTrainedTokenizer): The tokenizer for the model.
+    - output_key (str, optional): The key to use to extract embeddings from the model output. Defaults to 'last_hidden_state'.
+
+    Returns:
+    List[Tuple[np.ndarray, int]]: A list of tuples, each containing the generated embeddings and the length of the term.
+
+    Note:
+    - The embeddings are averaged along the sequence length dimension.
+    """
+    words = sentence.split()
+    all_permutations = []
+    for r in range(1, len(words) + 1):
+        for subset in permutations(words, r):
+            all_permutations.append(" ".join(subset))
+
+    print(all_permutations)
+
+    embeddings_list = []
+
+    for comb_term in all_permutations:
         # Generate inputs
         inputs = tokenizer(comb_term, return_tensors="pt")
 
