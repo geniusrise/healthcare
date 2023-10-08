@@ -6,6 +6,11 @@ import networkx as nx
 import numpy as np
 
 
+def invert_color(color):
+    """Invert the RGB values of a color"""
+    return (1 - color[0], 1 - color[1], 1 - color[2], color[3])
+
+
 def calculate_luminance(color):
     return 0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2]
 
@@ -65,7 +70,7 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
     }
 
     layout_func = layouts[layout_name]
-    plt.figure(figsize=(fig_size, fig_size), dpi=300)
+    plt.figure(figsize=(fig_size, fig_size), dpi=300, facecolor="black")
     labels = {node: concept_id_to_concept.get(str(node), str(node)) for node in subgraph.nodes()}
 
     if layout_name == "kamada_kawai":
@@ -83,6 +88,7 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
         edge_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.edges())))
 
     node_colors = node_colors.tolist()
+    node_colors = [invert_color(color) for color in node_colors]
 
     # Get node levels
     if highlight_nodes:
@@ -104,7 +110,7 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
         highlight_indices = [i for i, node in enumerate(subgraph.nodes()) if node in highlight_nodes]
 
         for i in highlight_indices:
-            node_colors[i] = plt.cm.Set1(0.0)
+            node_colors[i] = invert_color(plt.cm.Set1(0.0))
         for i in highlight_indices:
             linewidths[i] = 2  # Set linewidth to 2 for highlighted nodes
 
@@ -113,6 +119,7 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
 
     # Create a list of edge colors based on the origin node's color
     edge_colors = [node_to_color[edge[0]] for edge in subgraph.edges()]
+    edge_colors = [invert_color(color) for color in edge_colors]
 
     nx.draw(
         subgraph,
@@ -126,7 +133,7 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
         node_color=node_colors,
         linewidths=1,
         font_size=3.0,
-        font_color="black",
+        font_color="white",
         edge_color=edge_colors,
         style="solid",
     )
@@ -142,7 +149,7 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
 
         # Calculate luminance and decide text color
         luminance = calculate_luminance(node_colors[i][:3])
-        text_color = "white" if luminance < 0.5 else "black"
+        text_color = "black" if luminance < 0.5 else "white"
 
         plt.annotate(
             label,
@@ -164,4 +171,4 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
 
     nx.draw_networkx_edge_labels(subgraph, pos, edge_labels=edge_labels, font_size=3.0)
 
-    plt.savefig(f"{save_location}.png", bbox_inches="tight", pad_inches=0.1)
+    plt.savefig(f"{save_location}.png", bbox_inches="tight", pad_inches=0.1, facecolor="black")

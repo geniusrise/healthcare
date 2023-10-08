@@ -173,8 +173,8 @@ class InPatientAPI(Bolt):
             {
                 "temperature": 0.7,
                 "do_sample": True,
-                "max_new_tokens": 1024,
-                "exponential_decay_length_penalty": [800, 1.9],
+                "max_new_tokens": 2048,
+                "exponential_decay_length_penalty": [1900, 1.9],
             },
         )
         return generate_summary_from_qa(
