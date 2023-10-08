@@ -26,7 +26,7 @@ def extract(text: str) -> List[str]:
     # Extract content from the second markdown code block only
     if len(matches) > 1:
         _m = matches[1].strip().replace("- ", "").split("\n")
-        return [x.strip() for x in _m if x.strip()]
+        return [x.strip() for x in _m if len(x.strip()) > 6]
     return []
 
 
