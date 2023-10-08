@@ -19,7 +19,7 @@ def extract1(text: str) -> Optional[str]:
     - Optional[str]: The extracted summary report as a string, or None if not found.
     """
     # Regular expression pattern to match the summary report
-    pattern = r"Here is the report:\n\n```markdown\n(.*?)\n```"
+    pattern = r"Here is the report in less than 500 words:\n\n```markdown\n(.*?)\n```"
     match = re.search(pattern, text, re.DOTALL)
     if match:
         return match.group(1)
@@ -43,9 +43,17 @@ def prompt1(conditions: List[str], qa: Dict[str, str], symptoms_diseases: List[s
     return f"""
 ## Task
 
-Generate a comprehensive medical in-patient report for a doctor's review. The patient has presented with the following conditions: {cond}. Further questions were asked to understand the symptoms better.
+Generate a comprehensive medical in-patient report for a doctor's review.
+The patient has presented with the following conditions: {cond}.
+Further questions were asked to understand the symptoms better.
 
-Please generate a summary report in less than 150 words in markdown format that includes the patient's observations, summarizes the questions that were asked, and recommends tests to be conducted and diseases to be checked to further narrow down the cause.
+Please generate a summary report in less than 500 words in markdown format that includes:
+
+- the patient's observations
+- summarizes the questions that were asked
+- recommends tests to be conducted and diseases to be checked to further narrow down the cause
+
+Here is the report structure:
 
 ```
 # In-Patient Report
@@ -61,7 +69,7 @@ Please generate a summary report in less than 150 words in markdown format that 
 ## Diseases to check for and narrow down the cause
 ```
 
-Here is the report:
+Here is the report in less than 500 words:
 
 ```markdown
 # In-Patient Report
@@ -85,6 +93,8 @@ Subsequently, on further questioning, the patient had these to add on:
 {_qa}
 
 ## Recommended tests
+
+### Tests for diagnosis
 
 """.format(
         cond=cond, _qa=_qa, symptoms_diseases=", ".join(symptoms_diseases)

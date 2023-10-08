@@ -25,6 +25,7 @@ cffi==1.15.1
 charset-normalizer==3.2.0
 cheroot==10.0.0
 CherryPy==18.8.0
+cherrypy-cors==1.7.0
 click==8.1.7
 cmake==3.27.5
 colorama==0.4.6
@@ -57,6 +58,7 @@ geniusrise==0.0.16
 gensim==4.3.2
 google-auth==2.17.3
 GPUtil==1.4.0
+httpagentparser==1.9.5
 huggingface-hub==0.16.4
 humanfriendly==10.0
 idna==3.4

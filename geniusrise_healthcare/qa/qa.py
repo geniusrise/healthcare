@@ -17,14 +17,16 @@ def extract(text: str) -> List[str]:
     - text (str): The text block containing follow-up questions.
 
     Returns:
-    - List[str]: A list of extracted follow-up questions.
+    - List[str]: A list of extracted follow-up questions in markdown format.
     """
-    # Regular expression pattern to match the array of follow-up questions
-    pattern = r"Here is an array of [0-9]* follow up questions:\n```python(.*?)```"
-    match = re.search(pattern, text, re.DOTALL)
-    if match:
-        question_list_str = match.group(1)
-        return list(ast.literal_eval(question_list_str))
+    # Regular expression pattern to match all markdown code blocks
+    pattern = r"```markdown(.*?)```"
+    matches = re.findall(pattern, text, re.DOTALL)
+
+    # Extract content from the second markdown code block only
+    if len(matches) > 1:
+        _m = matches[1].strip().replace("- ", "").split("\n")
+        return [x.strip() for x in _m if x.strip()]
     return []
 
 
@@ -34,14 +36,14 @@ def prompt(conditions: List[str], symptoms_diseases: List[str]) -> str:
 
     Parameters:
     - conditions (List[str]): List of conditions or symptoms to generate questions for.
+    - symptoms_diseases (List[str]): List of symptoms or diseases reported by the patient.
 
     Returns:
     - str: A formatted prompt string asking for follow-up questions.
     """
     num_conditions = len(conditions)
-    _conditions = '["{cond}"]'.format(cond='", "'.join(conditions))
 
-    return """
+    return f"""
 ## Task
 
 Given the list of symptoms and diseases below, your task is to generate a set of follow-up questions to ask the patient.
@@ -55,18 +57,19 @@ Please adhere to the following guidelines:
 5. Dont ask questions that the patient has already told you.
 
 List of Symptoms and Diseases:
-```python
-snomed_conditions = {conditions}
-reported_conditions = {symptoms_diseases}
+```markdown
+### Conditions inferred
+
+{", ".join(conditions)}
+
+### Reported conditions
+
+{", ".join(symptoms_diseases)}
 ```
 
-Here is an array of {num_conditions} follow up questions:
-```python
-[\"""".format(
-        conditions=_conditions,
-        num_conditions=5 if num_conditions > 5 else num_conditions,
-        symptoms_diseases=", ".join(symptoms_diseases),
-    )
+Here is a list of {num_conditions if num_conditions > 4 else 4} follow up questions:
+```markdown
+- """
 
 
 def generate_follow_up_questions(

@@ -15,7 +15,7 @@
 genius InPatientAPI rise\
     batch \
         --input_s3_bucket geniusrise-test-healthcare \
-        --input_s3_folder snomed-graph \
+        --input_s3_folder model \
     batch \
         --output_s3_bucket geniusrise-test-healthcare \
         --output_s3_folder model \
@@ -29,7 +29,8 @@ genius InPatientAPI rise\
             networkx_graph="./saved/snomed.graph" \
             faiss_index="./saved/faiss.index.Bio_ClinicalBERT" \
             concept_id_to_concept="./saved/concept_id_to_concept.pickle" \
-            description_id_to_concept="./saved/description_id_to_concept.pickle"
+            description_id_to_concept="./saved/description_id_to_concept.pickle" \
+            cors_domain="*"
 ```
 
 ## APIs

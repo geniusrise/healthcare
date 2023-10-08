@@ -60,7 +60,7 @@ class InPatientAPI(Bolt):
         log.warn(f"Loading graph {networkx_graph}")
         self.G = load_networkx_graph(networkx_graph)
         log.warn(f"Loading FAISS index {faiss_index}")
-        self.faiss_index = load_faiss_index(faiss_index, use_cuda=True)
+        self.faiss_index = load_faiss_index(faiss_index, use_cuda=False)
         log.warn(f"Loading lookup dictionaries {concept_id_to_concept} {description_id_to_concept}")
         self.concept_id_to_concept = load_concept_dict(concept_id_to_concept)
         self.description_id_to_concept = load_concept_dict(description_id_to_concept)
@@ -123,7 +123,7 @@ class InPatientAPI(Bolt):
             faiss_index=self.faiss_index,
             concept_id_to_concept=self.concept_id_to_concept,
             semantic_similarity_cutoff=semantic_similarity_cutoff,
-            use_cuda=True,
+            use_cuda=False,
         )
 
     @cherrypy.expose
@@ -143,7 +143,7 @@ class InPatientAPI(Bolt):
                 "temperature": 0.7,
                 "do_sample": True,
                 "max_new_tokens": 256,
-                "exponential_decay_length_penalty": [230, 1.3],
+                "exponential_decay_length_penalty": [230, 1.9],
             },
         )
         return generate_follow_up_questions_from_concepts(
@@ -173,8 +173,8 @@ class InPatientAPI(Bolt):
             {
                 "temperature": 0.7,
                 "do_sample": True,
-                "max_new_tokens": 300,
-                "exponential_decay_length_penalty": [256, 1.3],
+                "max_new_tokens": 1024,
+                "exponential_decay_length_penalty": [800, 1.9],
             },
         )
         return generate_summary_from_qa(
@@ -250,6 +250,7 @@ class InPatientAPI(Bolt):
         faiss_index: str = "./saved/faiss.index",
         concept_id_to_concept: str = "./saved/concept_id_to_concept.pickle",
         description_id_to_concept: str = "./saved/description_id_to_concept.pickle",
+        cors_domain: str = "http://localhost:3000",
         username: Optional[str] = None,
         password: Optional[str] = None,
         **kwargs,
@@ -262,13 +263,28 @@ class InPatientAPI(Bolt):
             concept_id_to_concept=concept_id_to_concept,
             description_id_to_concept=description_id_to_concept,
         )
+
+        def CORS():
+            cherrypy.response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            cherrypy.response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            cherrypy.response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+            cherrypy.response.headers["Access-Control-Allow-Credentials"] = "true"
+
+            if cherrypy.request.method == "OPTIONS":
+                cherrypy.response.status = 200
+                return True
+
         cherrypy.config.update(
             {
                 "server.socket_host": "0.0.0.0",
                 "server.socket_port": port,
                 "log.screen": False,
+                "tools.CORS.on": True,
             }
         )
-        cherrypy.tree.mount(self, "/api/v1/")
+
+        cherrypy.tools.CORS = cherrypy.Tool("before_handler", CORS)
+        cherrypy.tree.mount(self, "/api/v1/", {"/": {"tools.CORS.on": True}})
+        cherrypy.tools.CORS = cherrypy.Tool("before_finalize", CORS)
         cherrypy.engine.start()
         cherrypy.engine.block()
