@@ -25,7 +25,7 @@ def extract(text: str) -> List[str]:
     if match:
         snomed_list_str = match.group(1)
         snomed_list = snomed_list_str.split(", ")
-        snomed_list = [x.replace('"', "").replace("'", "") for x in snomed_list]  # type: ignore
+        snomed_list = [x.replace('"', "").replace("'", "").replace("_", " ") for x in snomed_list]  # type: ignore
         return snomed_list
     return []
 
@@ -53,16 +53,19 @@ Given the user input below, identify the top 3 specific symptoms and diseases me
 - Limit the output to only the top 3 most relevant terms.
 - Dont include terms not part of the input.
 - Dont infer anything, just perform named entity recognition.
-- Avoid generic terms like "symptom" or "disease".
+- Avoid generic terms like "symptom", "symptom 1" or "disease".
 - Stop output after the code block is complete, dont output anything else apart from the 3 symptoms and diseases.
+- If there are no symptoms and diseases in the user's input, leave the output array blank.
 
-- The user input is as follows:
+## User Input
 
 ```python
 input = "{input}"
 ```
 
-Here is the requested array of maximum 3 symptoms and diseases referred to by the patient:
+## NER
+
+Here is the requested array of maximum 3 symptoms and diseases mentioned by the patient in the `input` above:
 
 ```python
 [\"""".format(

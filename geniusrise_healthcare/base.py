@@ -45,7 +45,7 @@ def ner(
         model=model,
         data=data,
         type_ids_filter=type_ids_filter,
-        max_new_tokens=25,
+        max_new_tokens=200,
     )
     _symptoms_and_diseases = [x["snomed"] for x in annotations[0]["annotations"]]
     symptoms_and_diseases.extend(_symptoms_and_diseases)

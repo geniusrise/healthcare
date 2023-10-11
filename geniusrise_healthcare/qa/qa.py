@@ -67,9 +67,10 @@ List of Symptoms and Diseases:
 {", ".join(symptoms_diseases)}
 ```
 
-Here is a list of {num_conditions if num_conditions > 4 else 4} follow up questions:
+## 5 Follow-Up Questions
+
 ```markdown
-- """
+- 1. Describe """
 
 
 def generate_follow_up_questions(
