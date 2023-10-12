@@ -12,7 +12,7 @@
 # Usage
 
 ```bash
-genius InPatientAPI rise\
+HF_HOME=/workspace genius InPatientAPI rise\
     batch \
         --input_s3_bucket geniusrise-test-healthcare \
         --input_s3_folder model \
@@ -24,7 +24,7 @@ genius InPatientAPI rise\
         --args \
             endpoint="*" \
             port=2180 \
-            llm_model="/run/media/ixaxaar/models_q/Llama-2-13B-GPTQ" \
+            llm_model="/workspace/Llama-2-70B-chat-GPTQ" \
             ner_model="emilyalsentzer/Bio_ClinicalBERT" \
             networkx_graph="./saved/snomed.graph" \
             faiss_index="./saved/faiss.index.Bio_ClinicalBERT" \
@@ -41,7 +41,7 @@ genius InPatientAPI rise\
 curl -s -X POST \
     -H "Content-Type: application/json" \
     -d '{"user_input": "i feel a bit light headed and have some difficulty breathing and some pain in chest"}' \
-    http://localhost:2180/api/v1/ner | jq
+    https://yauiuxmk8rlxkj-2180.proxy.runpod.net/api/v1/ner | jq
 ```
 
 ```json
@@ -59,13 +59,13 @@ curl -s -X POST \
     -d '{
       "user_input": "i feel a bit light headed and have some difficulty breathing and some pain in chest",
       "symptoms_diseases": [
-        "light headed",
-        "difficulty breathing",
-        "pain in chest"
+      "shortness_of_breath",
+      "chest_pain",
+      "lightheadedness"
       ],
       "semantic_similarity_cutoff": 0.9
     }' \
-    http://localhost:2180/api/v1/semantic_search | jq
+    https://yauiuxmk8rlxkj-2180.proxy.runpod.net/api/v1/semantic_search | jq
 ```
 
 ```json
@@ -116,7 +116,7 @@ curl -s -X POST \
         ]
       ]
     }' \
-    http://localhost:2180/api/v1/follow_up | jq
+    https://yauiuxmk8rlxkj-2180.proxy.runpod.net/api/v1/follow_up | jq
 ```
 
 ```bash
@@ -201,7 +201,7 @@ curl -s -X POST \
             "Are you allergic to any medication?": "not that i know of"
           }
         }' \
-    http://localhost:2180/api/v1/summary | jq
+    https://yauiuxmk8rlxkj-2180.proxy.runpod.net/api/v1/summary | jq
 ```
 
 ```json
@@ -302,7 +302,7 @@ curl -s -X POST \
 ### Generate snomed diagram
 
 ```bash
-http POST http://localhost:2180/api/v1/graph snomed_concepts:='
+http POST https://yauiuxmk8rlxkj-2180.proxy.runpod.net/api/v1/graph snomed_concepts:='
 [
   [
     139200001,
