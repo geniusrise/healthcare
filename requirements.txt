@@ -48,7 +48,6 @@ emoji==2.7.0
 env-file==2020.12.3
 exceptiongroup==1.1.2
 executing==1.2.0
--e git+https://github.com/facebookresearch/faiss.git@d85601d972af2d64103769ab8d940db28aaae2a0#egg=faiss&subdirectory=build/faiss/python
 filelock==3.12.4
 flake8==6.1.0
 fonttools==4.42.1
