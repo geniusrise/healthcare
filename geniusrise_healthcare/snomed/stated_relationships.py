@@ -1,3 +1,19 @@
+# 🧠 Geniusrise
+# Copyright (C) 2023  geniusrise.ai
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import csv
 import logging
 
@@ -22,8 +38,8 @@ def process_stated_relationship_file(stated_relationship_file: str, G: nx.DiGrap
         num_lines = sum(1 for _ in f)
 
     log.info(f"Loading stated relationships from {stated_relationship_file}")
-    with open(stated_relationship_file, "r") as f:
-        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)
+    with open(stated_relationship_file, "r") as f:  # type: ignore
+        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)  # type: ignore
         next(reader)
         for row in tqdm(reader, total=num_lines):
             try:

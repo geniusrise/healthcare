@@ -1,3 +1,21 @@
+# 🧠 Geniusrise
+# Copyright (C) 2023  geniusrise.ai
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# type: ignore
+# cause fuck you
+
 import textwrap
 from collections import deque
 
@@ -99,9 +117,11 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
         unique_levels = sorted(set(node_levels.values()))
         cmap = plt.cm.get_cmap("tab20c", len(unique_levels))
         node_colors = [
-            cmap(unique_levels.index(node_levels.get(node, None)))
-            if node_levels.get(node, None) is not None
-            else (0, 0, 0, 1)
+            (
+                cmap(unique_levels.index(node_levels.get(node, None)))
+                if node_levels.get(node, None) is not None
+                else (0, 0, 0, 1)
+            )
             for node in subgraph.nodes()
         ]
 
