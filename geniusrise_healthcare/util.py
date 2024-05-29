@@ -13,8 +13,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# type: ignore
-# cause fuck you
 
 import textwrap
 from collections import deque
@@ -25,30 +23,33 @@ import numpy as np
 
 
 def invert_color(color):
-    """Invert the RGB values of a color"""
+    """Invert the RGB values of a color."""
     return (1 - color[0], 1 - color[1], 1 - color[2], color[3])
 
 
 def calculate_luminance(color):
+    """Calculate the luminance of a color."""
     return 0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2]
 
 
-def print_dfs_chain(G, node, visited, concept_id_to_concept, chain):
+def print_dfs_chain(graph, node, visited, concept_id_to_concept, chain):
+    """Print the DFS chain of nodes in the graph."""
     visited.add(node)
     chain.append(concept_id_to_concept.get(str(node), node))
 
-    for neighbor in G.neighbors(node):
+    for neighbor in graph.neighbors(node):
         if neighbor not in visited:
-            edge_data = G.get_edge_data(node, neighbor)
-            print_dfs_chain(G, neighbor, visited, concept_id_to_concept, chain)
+            edge_data = graph.get_edge_data(node, neighbor)
+            print_dfs_chain(graph, neighbor, visited, concept_id_to_concept, chain)
             chain_str = " --> ".join(chain)
             print(
-                f"Chain: {chain_str} --({concept_id_to_concept[edge_data['relationship_type']]})---> {concept_id_to_concept.get(str(neighbor), neighbor)}"
+                f"Chain: {chain_str} --({concept_id_to_concept[edge_data['relationship_type']]})---> "
+                f"{concept_id_to_concept.get(str(neighbor), neighbor)}"
             )
             chain.pop()
 
 
-def get_node_levels(G, root_nodes):
+def get_node_levels(graph, root_nodes):
     """Get levels of all nodes based on the shortest distance from the root nodes."""
     levels = {}
     visited = set()
@@ -61,13 +62,14 @@ def get_node_levels(G, root_nodes):
             visited.add(current_node)
             levels[current_node] = level
 
-            for neighbor in G.successors(current_node):
+            for neighbor in graph.successors(current_node):
                 queue.append((neighbor, level + 1))
 
     return levels
 
 
 def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_nodes=None, layout_name="arf"):
+    """Draw the subgraph and save it as an image."""
     num_nodes = len(subgraph.nodes())
 
     # Decide figure size based on the number of nodes
@@ -89,31 +91,25 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
 
     layout_func = layouts[layout_name]
     plt.figure(figsize=(fig_size, fig_size), dpi=300, facecolor="black")
-    labels = {node: concept_id_to_concept.get(str(node), str(node)) for node in subgraph.nodes()}
 
     if layout_name == "kamada_kawai":
         pos = layout_func(subgraph, weight="degrees")
-        node_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.nodes())))
-        edge_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.edges())))
     elif layout_name == "shell":
         pos = layout_func(subgraph, scale=5)
-        node_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.nodes())))
-        edge_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.edges())))
     else:
         pos = layout_func(subgraph)
-        # Generate a list of unique colors for nodes and edges
-        node_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.nodes())))
-        edge_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.edges())))
 
-    node_colors = node_colors.tolist()
-    node_colors = [invert_color(color) for color in node_colors]
+    # Generate a list of unique colors for nodes and edges
+    node_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.nodes())))
+    edge_colors = plt.cm.tab20c(np.linspace(0, 1, len(subgraph.edges())))
 
-    # Get node levels
+    node_colors = [invert_color(color) for color in node_colors.tolist()]
+
+    # Get node levels and assign colors based on levels
     if highlight_nodes:
         root_nodes = [n for n in highlight_nodes if n in subgraph.nodes]
         node_levels = get_node_levels(subgraph, root_nodes)
 
-        # Initialize node colors based on levels
         unique_levels = sorted(set(node_levels.values()))
         cmap = plt.cm.get_cmap("tab20c", len(unique_levels))
         node_colors = [
@@ -125,21 +121,15 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
             for node in subgraph.nodes()
         ]
 
-        highlight_color = plt.cm.Set1(0.0)
-        linewidths = [1] * len(subgraph.nodes())
         highlight_indices = [i for i, node in enumerate(subgraph.nodes()) if node in highlight_nodes]
-
         for i in highlight_indices:
             node_colors[i] = invert_color(plt.cm.Set1(0.0))
-        for i in highlight_indices:
-            linewidths[i] = 2  # Set linewidth to 2 for highlighted nodes
 
     # Create a mapping from node to color
     node_to_color = {node: color for node, color in zip(subgraph.nodes(), node_colors)}
 
     # Create a list of edge colors based on the origin node's color
-    edge_colors = [node_to_color[edge[0]] for edge in subgraph.edges()]
-    edge_colors = [invert_color(color) for color in edge_colors]
+    edge_colors = [invert_color(node_to_color[edge[0]]) for edge in subgraph.edges()]
 
     nx.draw(
         subgraph,
@@ -183,11 +173,11 @@ def draw_subgraph(subgraph, concept_id_to_concept, save_location, highlight_node
         )
 
     # Label edges
-    edge_labels = {}
-    for u, v, data in subgraph.edges(data=True):
-        relationship_type = concept_id_to_concept.get(str(data.get("relationship_type", "")), "")
-        relationship_group = concept_id_to_concept.get(str(data.get("relationship_group", "")), "")
-        edge_labels[(u, v)] = f"{relationship_type}\n{relationship_group}"
+    edge_labels = {
+        (u, v): f"{concept_id_to_concept.get(str(data.get('relationship_type', '')), '')}\n"
+        f"{concept_id_to_concept.get(str(data.get('relationship_group', '')), '')}"
+        for u, v, data in subgraph.edges(data=True)
+    }
 
     nx.draw_networkx_edge_labels(subgraph, pos, edge_labels=edge_labels, font_size=3.0)
 

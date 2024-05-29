@@ -43,12 +43,14 @@ def process_stated_relationship_file(stated_relationship_file: str, G: nx.DiGrap
         next(reader)
         for row in tqdm(reader, total=num_lines):
             try:
-                source_id, dest_id, active, relationship_type, relationship_group = (
+                source_id, dest_id, active, relationship_type, relationship_group, characteristic_type, refinability = (
                     row[4],
                     row[5],
                     row[2],
                     row[7],
                     row[6],
+                    row[8],
+                    row[9],
                 )
                 if active == "1":
                     G.add_edge(
@@ -56,6 +58,9 @@ def process_stated_relationship_file(stated_relationship_file: str, G: nx.DiGrap
                         int(dest_id),
                         relationship_type=relationship_type,
                         relationship_group=relationship_group,
+                        characteristic_type=characteristic_type,
+                        refinability=refinability,
                     )
             except Exception as e:
+                log.error(f"Error processing stated relationship {row}: {e}")
                 raise ValueError(f"Error processing stated relationship {row}: {e}")

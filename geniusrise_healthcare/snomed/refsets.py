@@ -105,11 +105,21 @@ def process_refsets_file(owl_file: str, G: nx.DiGraph) -> None:
         next(reader)
         for row in tqdm(reader, total=num_lines):
             try:
-                owl_expression = row[6]
-                referenced_component_id = row[4]
+                owl_expression, referenced_component_id, refset_id, reference_component = (
+                    row[6],
+                    row[4],
+                    row[5],
+                    row[8],
+                )
                 edges = parse_owl_functional(owl_expression, referenced_component_id)
                 for source, target, relationship_type in edges:
-                    G.add_edge(source, target, relationship_type=relationship_type)
+                    G.add_edge(
+                        source,
+                        target,
+                        relationship_type=relationship_type,
+                        refset_id=refset_id,
+                        reference_component=reference_component,
+                    )
             except Exception as e:
                 log.error(f"Error processing OWL expression {row}: {e}")
                 raise ValueError(f"Error processing OWL expression {row}: {e}")

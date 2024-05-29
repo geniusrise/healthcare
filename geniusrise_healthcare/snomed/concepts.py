@@ -76,18 +76,35 @@ def process_concept_file(
         next(reader)
         for row in tqdm(reader, total=num_lines):
             try:
-                description_id, active, concept_id, language, concept_name, type_id = (
+                (
+                    description_id,
+                    active,
+                    definition_status,
+                    concept_id,
+                    language,
+                    type_id,
+                    concept_name,
+                    case_significance,
+                ) = (
                     row[0],
                     row[2],
+                    row[3],
                     row[4],
                     row[5],
-                    row[7],
                     row[6],
+                    row[7],
+                    row[8],
                 )
 
                 if active == "1" and language == "en":
                     semantic_tag, fsn_without_tag = extract_and_remove_semantic_tag(concept_name.lower())
-                    G.add_node(int(concept_id), type=type_id, tag=semantic_tag)
+                    G.add_node(
+                        int(concept_id),
+                        type=type_id,
+                        tag=semantic_tag,
+                        definition_status=definition_status,
+                        case_significance=case_significance,
+                    )
                     description_id_to_concept[description_id] = fsn_without_tag
                     concept_id_to_concept[concept_id] = fsn_without_tag
 
@@ -106,6 +123,7 @@ def process_concept_file(
                             fsns.clear()
                             batch_count = 0
             except Exception as e:
+                log.error(f"Error processing node {row}: {e}")
                 raise ValueError(f"Error processing node {row}: {e}")
 
     if batch_count > 0 and not skip_embedding and model and tokenizer and faiss_index:

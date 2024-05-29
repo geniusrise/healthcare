@@ -42,8 +42,19 @@ def process_text_definition_file(text_definition_file: str, concept_id_to_text_d
         next(reader)
         for row in tqdm(reader, total=num_lines):
             try:
-                concept_id, active, term = row[4], row[2], row[7]
+                concept_id, active, term, definition_type, case_significance = (
+                    row[4],
+                    row[2],
+                    row[7],
+                    row[6],
+                    row[8],
+                )
                 if active == "1":
-                    concept_id_to_text_definition[concept_id] = term
+                    concept_id_to_text_definition[concept_id] = {  # type: ignore
+                        "term": term,
+                        "definition_type": definition_type,
+                        "case_significance": case_significance,
+                    }
             except Exception as e:
+                log.error(f"Error processing text definition {row}: {e}")
                 raise ValueError(f"Error processing text definition {row}: {e}")
