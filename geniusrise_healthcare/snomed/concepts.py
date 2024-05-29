@@ -21,12 +21,29 @@ def process_concept_file(
     tokenizer=None,
     model=None,
     faiss_index=None,
-    use_cuda=True,
-    batch_size=10000,
-    skip_embedding=False,
+    use_cuda: bool = True,
+    batch_size: int = 10000,
+    skip_embedding: bool = False,
 ) -> None:
+    """
+    Processes the SNOMED CT concept file and adds concepts to the graph.
+
+    Args:
+        concept_file (str): Path to the concept file.
+        G (nx.DiGraph): NetworkX graph to which the concepts will be added.
+        description_id_to_concept (Dict[str, str]): Dictionary mapping description IDs to concepts.
+        concept_id_to_concept (Dict[str, str]): Dictionary mapping concept IDs to concepts.
+        tokenizer: Tokenizer for processing text data (optional).
+        model: Model for generating embeddings (optional).
+        faiss_index: Faiss index for embedding storage and search (optional).
+        use_cuda (bool): Flag to use CUDA for processing (default is True).
+        batch_size (int): Batch size for processing embeddings (default is 10000).
+        skip_embedding (bool): Flag to skip embedding generation (default is False).
+
+    Returns:
+        None
+    """
     device = torch.device("cuda" if torch.cuda.is_available() and use_cuda else "cpu")
-    # Initialize batch variables
     batch_ids: List[int] = []
     batch_count = 0
     fsns = []
@@ -34,14 +51,13 @@ def process_concept_file(
 
     csv.field_size_limit(sys.maxsize)
 
-    file_length = 0
     with open(concept_file, "rbU") as f:
         num_lines = sum(1 for _ in f)
 
     log.info(f"Loading concepts from {concept_file}")
-    with open(concept_file, "r") as f:  # type: ignore
-        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)  # type: ignore
-        next(reader)  # Skip header
+    with open(concept_file, "r") as f:
+        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)
+        next(reader)
         for row in tqdm(reader, total=num_lines):
             try:
                 description_id, active, concept_id, language, concept_name, type_id = (
@@ -68,47 +84,26 @@ def process_concept_file(
                         batch_ids.append(int(concept_id))
                         batch_count += 1
 
-                        # Process batch if it reaches the batch_size
                         if batch_count >= batch_size:
-                            # Generate embeddings
-                            batch_embeddings: List[torch.Tensor] = []
-                            for fsn in fsns:
-                                inputs = tokenizer(
-                                    fsn,
-                                    return_tensors="pt",
-                                ).to(device)
-                                outputs = model(**inputs)
-                                embeddings = outputs.last_hidden_state.mean(dim=1).detach()
-
-                                # Add to batch
-                                batch_embeddings.append(embeddings)
-
-                            log.info("Flushing into faiss")
-                            batch_embeddings = [
-                                x.cpu().numpy() if type(x) is not np.ndarray else x for x in batch_embeddings
-                            ]
-                            faiss_index.add_with_ids(np.vstack(batch_embeddings), np.array(batch_ids))
-                            batch_embeddings.clear()
+                            _process_batch(fsns, batch_ids, tokenizer, model, faiss_index, device)
                             batch_ids.clear()
                             fsns.clear()
                             batch_count = 0
             except Exception as e:
                 raise ValueError(f"Error processing node {row}: {e}")
 
-    # Process remaining batch
     if batch_count > 0 and not skip_embedding and model and tokenizer and faiss_index:
-        batch_embeddings: List[torch.Tensor] = []  # type: ignore
-        for fsn in fsns:
-            inputs = tokenizer(
-                fsn,
-                return_tensors="pt",
-            ).to(device)
-            outputs = model(**inputs)
-            embeddings = outputs.last_hidden_state.mean(dim=1).detach()
+        _process_batch(fsns, batch_ids, tokenizer, model, faiss_index, device)
 
-            # Add to batch
-            batch_embeddings.append(embeddings)
 
-        log.info("Final flush into faiss")
-        batch_embeddings = [x.cpu().numpy() if type(x) is not np.ndarray else x for x in batch_embeddings]
-        faiss_index.add_with_ids(np.vstack(batch_embeddings), np.array(batch_ids))
+def _process_batch(fsns: List[str], batch_ids: List[int], tokenizer, model, faiss_index, device) -> None:
+    batch_embeddings = []
+    for fsn in fsns:
+        inputs = tokenizer(fsn, return_tensors="pt").to(device)
+        outputs = model(**inputs)
+        embeddings = outputs.last_hidden_state.mean(dim=1).detach()
+        batch_embeddings.append(embeddings)
+
+    log.info("Flushing into faiss")
+    batch_embeddings = [x.cpu().numpy() for x in batch_embeddings]
+    faiss_index.add_with_ids(np.vstack(batch_embeddings), np.array(batch_ids))

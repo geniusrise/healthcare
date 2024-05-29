@@ -20,11 +20,27 @@ def load_snomed_into_networkx(
     tokenizer=None,
     model=None,
     faiss_index=None,
-    version="INT_20230901",
-    use_cuda=True,
-    batch_size=10000,
-    skip_embedding=False,
+    version: str = "INT_20230901",
+    use_cuda: bool = True,
+    batch_size: int = 10000,
+    skip_embedding: bool = False,
 ) -> Tuple[nx.DiGraph, Dict[str, str], Dict[str, str], Dict[str, str]]:
+    """
+    Loads SNOMED CT data into a NetworkX graph.
+
+    Args:
+        extract_path (str): Path to the directory containing the SNOMED CT files.
+        tokenizer: Tokenizer for processing text data (optional).
+        model: Model for generating embeddings (optional).
+        faiss_index: Faiss index for embedding storage and search (optional).
+        version (str): Version of the SNOMED CT files (default is "INT_20230901").
+        use_cuda (bool): Flag to use CUDA for processing (default is True).
+        batch_size (int): Batch size for processing embeddings (default is 10000).
+        skip_embedding (bool): Flag to skip embedding generation (default is False).
+
+    Returns:
+        Tuple containing the graph, description_id_to_concept, concept_id_to_concept, and concept_id_to_text_definition mappings.
+    """
     device = torch.device("cuda" if torch.cuda.is_available() and use_cuda else "cpu")
 
     G = nx.DiGraph()

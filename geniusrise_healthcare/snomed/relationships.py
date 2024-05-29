@@ -8,14 +8,23 @@ log = logging.getLogger(__name__)
 
 
 def process_relationship_file(relationship_file: str, G: nx.DiGraph) -> None:
-    file_length = 0
+    """
+    Processes the SNOMED CT relationship file and adds the relationships to the graph.
+
+    Args:
+        relationship_file (str): Path to the relationship file.
+        G (nx.DiGraph): The NetworkX graph to which the relationships will be added.
+
+    Returns:
+        None
+    """
     with open(relationship_file, "rbU") as f:
         num_lines = sum(1 for _ in f)
 
     log.info(f"Loading relationships from {relationship_file}")
-    with open(relationship_file, "r") as f:  # type: ignore
-        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)  # type: ignore
-        next(reader)  # Skip header
+    with open(relationship_file, "r") as f:
+        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)
+        next(reader)
         for row in tqdm(reader, total=num_lines):
             try:
                 source_id, dest_id, active, relationship_type, relationship_group = (
@@ -33,4 +42,4 @@ def process_relationship_file(relationship_file: str, G: nx.DiGraph) -> None:
                         relationship_group=relationship_group,
                     )
             except Exception as e:
-                raise ValueError(f"Error processing relation {row}")
+                raise ValueError(f"Error processing relation {row}: {e}")

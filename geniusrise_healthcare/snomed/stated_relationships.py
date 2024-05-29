@@ -11,21 +11,20 @@ def process_stated_relationship_file(stated_relationship_file: str, G: nx.DiGrap
     """
     Processes the SNOMED CT stated relationship file and adds the relationships to the graph.
 
-    Parameters:
-    - stated_relationship_file (str): Path to the stated relationship file.
-    - G (nx.DiGraph): The NetworkX graph to which the relationships will be added.
+    Args:
+        stated_relationship_file (str): Path to the stated relationship file.
+        G (nx.DiGraph): The NetworkX graph to which the relationships will be added.
 
     Returns:
-    None
+        None
     """
-    file_length = 0
     with open(stated_relationship_file, "rbU") as f:
         num_lines = sum(1 for _ in f)
 
     log.info(f"Loading stated relationships from {stated_relationship_file}")
-    with open(stated_relationship_file, "r") as f:  # type: ignore
-        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)  # type: ignore
-        next(reader)  # Skip header
+    with open(stated_relationship_file, "r") as f:
+        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)
+        next(reader)
         for row in tqdm(reader, total=num_lines):
             try:
                 source_id, dest_id, active, relationship_type, relationship_group = (

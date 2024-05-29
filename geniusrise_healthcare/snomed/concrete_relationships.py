@@ -1,5 +1,3 @@
-# concrete_values.py
-
 import csv
 import logging
 
@@ -13,21 +11,20 @@ def process_concrete_values_file(concrete_values_file: str, G: nx.DiGraph) -> No
     """
     Processes the SNOMED CT concrete values file and adds the relationships to the graph.
 
-    Parameters:
-    - concrete_values_file (str): Path to the concrete values file.
-    - G (nx.DiGraph): The NetworkX graph to which the relationships will be added.
+    Args:
+        concrete_values_file (str): Path to the concrete values file.
+        G (nx.DiGraph): The NetworkX graph to which the relationships will be added.
 
     Returns:
-    None
+        None
     """
-    file_length = 0
     with open(concrete_values_file, "rbU") as f:
         num_lines = sum(1 for _ in f)
 
     log.info(f"Loading concrete values from {concrete_values_file}")
-    with open(concrete_values_file, "r") as f:  # type: ignore
-        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)  # type: ignore
-        next(reader)  # Skip header
+    with open(concrete_values_file, "r") as f:
+        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)
+        next(reader)
         for row in tqdm(reader, total=num_lines):
             try:
                 source_id, value, active, relationship_type, relationship_group = (

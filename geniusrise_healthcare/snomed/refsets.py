@@ -42,6 +42,16 @@ owl_expression_grammar = OneOrMore(
 
 
 def parse_owl_functional(owl_expression: str, referenced_component_id: str) -> List[Tuple[int, int, str]]:
+    """
+    Parses an OWL functional expression and returns the edges for the graph.
+
+    Args:
+        owl_expression (str): The OWL functional expression.
+        referenced_component_id (str): The component ID referenced in the expression.
+
+    Returns:
+        List of tuples representing the edges to be added to the graph.
+    """
     try:
         parsed = owl_expression_grammar.parseString(owl_expression)
         edges = []
@@ -60,14 +70,23 @@ def parse_owl_functional(owl_expression: str, referenced_component_id: str) -> L
 
 
 def process_refsets_file(owl_file: str, G: nx.DiGraph) -> None:
-    file_length = 0
+    """
+    Processes the SNOMED CT OWL refsets file and adds the relationships to the graph.
+
+    Args:
+        owl_file (str): Path to the OWL refsets file.
+        G (nx.DiGraph): The NetworkX graph to which the relationships will be added.
+
+    Returns:
+        None
+    """
     with open(owl_file, "rbU") as f:
         num_lines = sum(1 for _ in f)
 
     log.info(f"Loading OWL expressions from {owl_file}")
-    with open(owl_file, "r") as f:  # type: ignore
-        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)  # type: ignore
-        next(reader)  # Skip header
+    with open(owl_file, "r") as f:
+        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)
+        next(reader)
         for row in tqdm(reader, total=num_lines):
             try:
                 owl_expression = row[6]
