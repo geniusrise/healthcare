@@ -20,34 +20,34 @@ from .utils import read_xml_file, get_elements_by_tag
 log = logging.getLogger(__name__)
 
 
-def process_targets_file(targets_file: str, G: nx.DiGraph) -> None:
+def process_targets(drugbank_file: str, G: nx.DiGraph) -> None:
     """
     Processes the DrugBank targets data and adds it to the graph.
 
     Args:
-        targets_file (str): Path to the DrugBank XML file.
+        drugbank_file (str): Path to the DrugBank XML file.
         G (nx.DiGraph): The NetworkX graph to which the target data will be added.
 
     Returns:
         None
     """
-    log.info(f"Loading targets from {targets_file}")
+    log.info(f"Loading targets from {drugbank_file}")
 
-    tree = read_xml_file(targets_file)
+    tree = read_xml_file(drugbank_file)
     drug_elements = get_elements_by_tag(tree, "drug")
 
     for drug in drug_elements:
-        try:
-            drugbank_id = drug.findtext("drugbank-id[@primary='true']")
-            targets = drug.find("targets")
-            if targets is not None:
-                for target in targets.findall("target"):
+        drugbank_id = drug.findtext("drugbank-id[@primary='true']")
+        targets = drug.find("targets")
+        if targets is not None:
+            for target in targets.findall("target"):
+                try:
                     target_id = target.findtext("id")
                     name = target.findtext("name")
                     organism = target.findtext("organism")
+                    actions = [action.text for action in target.findall("actions/action")]
                     if target_id:
                         G.add_node(target_id, name=name, organism=organism, type="target")
-                        G.add_edge(drugbank_id, target_id, type="targets")
-        except Exception as e:
-            log.error(f"Error processing target for drug {drug}: {e}")
-            raise ValueError(f"Error processing target for drug {drug}: {e}")
+                        G.add_edge(drugbank_id, target_id, type="target", actions=actions)
+                except Exception as e:
+                    log.error(f"Error processing target for drug {drugbank_id}: {e}")

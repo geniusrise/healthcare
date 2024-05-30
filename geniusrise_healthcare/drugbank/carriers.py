@@ -20,34 +20,34 @@ from .utils import read_xml_file, get_elements_by_tag
 log = logging.getLogger(__name__)
 
 
-def process_carriers_file(carriers_file: str, G: nx.DiGraph) -> None:
+def process_carriers(drugbank_file: str, G: nx.DiGraph) -> None:
     """
     Processes the DrugBank carriers data and adds it to the graph.
 
     Args:
-        carriers_file (str): Path to the DrugBank XML file.
+        drugbank_file (str): Path to the DrugBank XML file.
         G (nx.DiGraph): The NetworkX graph to which the carrier data will be added.
 
     Returns:
         None
     """
-    log.info(f"Loading carriers from {carriers_file}")
+    log.info(f"Loading carriers from {drugbank_file}")
 
-    tree = read_xml_file(carriers_file)
+    tree = read_xml_file(drugbank_file)
     drug_elements = get_elements_by_tag(tree, "drug")
 
     for drug in drug_elements:
-        try:
-            drugbank_id = drug.findtext("drugbank-id[@primary='true']")
-            carriers = drug.find("carriers")
-            if carriers is not None:
-                for carrier in carriers.findall("carrier"):
+        drugbank_id = drug.findtext("drugbank-id[@primary='true']")
+        carriers = drug.find("carriers")
+        if carriers is not None:
+            for carrier in carriers.findall("carrier"):
+                try:
                     carrier_id = carrier.findtext("id")
                     name = carrier.findtext("name")
                     organism = carrier.findtext("organism")
+                    actions = [action.text for action in carrier.findall("actions/action")]
                     if carrier_id:
                         G.add_node(carrier_id, name=name, organism=organism, type="carrier")
-                        G.add_edge(drugbank_id, carrier_id, type="carriers")
-        except Exception as e:
-            log.error(f"Error processing carrier for drug {drug}: {e}")
-            raise ValueError(f"Error processing carrier for drug {drug}: {e}")
+                        G.add_edge(drugbank_id, carrier_id, type="carrier", actions=actions)
+                except Exception as e:
+                    log.error(f"Error processing carrier for drug {drugbank_id}: {e}")

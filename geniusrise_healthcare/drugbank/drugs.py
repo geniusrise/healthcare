@@ -20,20 +20,20 @@ from .utils import read_xml_file, get_elements_by_tag
 log = logging.getLogger(__name__)
 
 
-def process_drugs_file(drugs_file: str, G: nx.DiGraph) -> None:
+def process_drugs(drugbank_file: str, G: nx.DiGraph) -> None:
     """
     Processes the DrugBank drugs data and adds it to the graph.
 
     Args:
-        drugs_file (str): Path to the DrugBank XML file.
+        drugbank_file (str): Path to the DrugBank XML file.
         G (nx.DiGraph): The NetworkX graph to which the drug data will be added.
 
     Returns:
         None
     """
-    log.info(f"Loading drugs from {drugs_file}")
+    log.info(f"Loading drugs from {drugbank_file}")
 
-    tree = read_xml_file(drugs_file)
+    tree = read_xml_file(drugbank_file)
     drug_elements = get_elements_by_tag(tree, "drug")
 
     for drug in drug_elements:
@@ -41,8 +41,20 @@ def process_drugs_file(drugs_file: str, G: nx.DiGraph) -> None:
             drugbank_id = drug.findtext("drugbank-id[@primary='true']")
             name = drug.findtext("name")
             description = drug.findtext("description")
+            drug_type = drug.findtext("type")
+            categories = [category.text for category in drug.findall("categories/category")]
+            synonyms = [synonym.text for synonym in drug.findall("synonyms/synonym")]
+
             if drugbank_id:
-                G.add_node(drugbank_id, name=name, description=description, type="drug")
+                G.add_node(
+                    drugbank_id,
+                    name=name,
+                    description=description,
+                    type="drug",
+                    drug_type=drug_type,
+                    categories=categories,
+                    synonyms=synonyms,
+                )
         except Exception as e:
             log.error(f"Error processing drug {drug}: {e}")
-            raise ValueError(f"Error processing drug {drug}: {e}")
+            raise

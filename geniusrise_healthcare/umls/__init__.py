@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from .attributes import process_attributes_file
 from .base import load_umls_into_networkx
 from .concepts import process_concepts_file

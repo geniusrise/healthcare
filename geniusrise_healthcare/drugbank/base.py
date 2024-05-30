@@ -16,12 +16,12 @@
 import logging
 import os
 import networkx as nx
-from .drugs import process_drugs_file
-from .interactions import process_interactions_file
-from .targets import process_targets_file
-from .enzymes import process_enzymes_file
-from .carriers import process_carriers_file
-from .transporters import process_transporters_file
+from .drugs import process_drugs
+from .interactions import process_interactions
+from .targets import process_targets
+from .enzymes import process_enzymes
+from .carriers import process_carriers
+from .transporters import process_transporters
 
 log = logging.getLogger(__name__)
 
@@ -40,12 +40,12 @@ def load_drugbank_into_networkx(drugbank_path: str) -> nx.DiGraph:
 
     drugs_file = os.path.join(drugbank_path, "drugbank.xml")
 
-    process_drugs_file(drugs_file, G)
-    process_interactions_file(drugs_file, G)
-    process_targets_file(drugs_file, G)
-    process_enzymes_file(drugs_file, G)
-    process_carriers_file(drugs_file, G)
-    process_transporters_file(drugs_file, G)
+    process_drugs(drugs_file, G)
+    process_interactions(drugs_file, G)
+    process_targets(drugs_file, G)
+    process_enzymes(drugs_file, G)
+    process_carriers(drugs_file, G)
+    process_transporters(drugs_file, G)
 
     log.info(f"Loaded {G.number_of_nodes()} nodes and {G.number_of_edges()} edges into the graph.")
     return G

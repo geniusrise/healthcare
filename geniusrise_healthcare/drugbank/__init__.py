@@ -14,9 +14,9 @@
 # limitations under the License.
 
 from .base import load_drugbank_into_networkx
-from .drugs import process_drugs_file
-from .interactions import process_interactions_file
-from .targets import process_targets_file
-from .enzymes import process_enzymes_file
-from .carriers import process_carriers_file
-from .transporters import process_transporters_file
+from .drugs import process_drugs
+from .interactions import process_interactions
+from .targets import process_targets
+from .enzymes import process_enzymes
+from .carriers import process_carriers
+from .transporters import process_transporters

@@ -20,34 +20,34 @@ from .utils import read_xml_file, get_elements_by_tag
 log = logging.getLogger(__name__)
 
 
-def process_transporters_file(transporters_file: str, G: nx.DiGraph) -> None:
+def process_transporters(drugbank_file: str, G: nx.DiGraph) -> None:
     """
     Processes the DrugBank transporters data and adds it to the graph.
 
     Args:
-        transporters_file (str): Path to the DrugBank XML file.
+        drugbank_file (str): Path to the DrugBank XML file.
         G (nx.DiGraph): The NetworkX graph to which the transporter data will be added.
 
     Returns:
         None
     """
-    log.info(f"Loading transporters from {transporters_file}")
+    log.info(f"Loading transporters from {drugbank_file}")
 
-    tree = read_xml_file(transporters_file)
+    tree = read_xml_file(drugbank_file)
     drug_elements = get_elements_by_tag(tree, "drug")
 
     for drug in drug_elements:
-        try:
-            drugbank_id = drug.findtext("drugbank-id[@primary='true']")
-            transporters = drug.find("transporters")
-            if transporters is not None:
-                for transporter in transporters.findall("transporter"):
+        drugbank_id = drug.findtext("drugbank-id[@primary='true']")
+        transporters = drug.find("transporters")
+        if transporters is not None:
+            for transporter in transporters.findall("transporter"):
+                try:
                     transporter_id = transporter.findtext("id")
                     name = transporter.findtext("name")
                     organism = transporter.findtext("organism")
+                    actions = [action.text for action in transporter.findall("actions/action")]
                     if transporter_id:
                         G.add_node(transporter_id, name=name, organism=organism, type="transporter")
-                        G.add_edge(drugbank_id, transporter_id, type="transporters")
-        except Exception as e:
-            log.error(f"Error processing transporter for drug {drug}: {e}")
-            raise ValueError(f"Error processing transporter for drug {drug}: {e}")
+                        G.add_edge(drugbank_id, transporter_id, type="transporter", actions=actions)
+                except Exception as e:
+                    log.error(f"Error processing transporter for drug {drugbank_id}: {e}")
