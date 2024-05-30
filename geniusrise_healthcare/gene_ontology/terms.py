@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# terms.py
 import logging
 import networkx as nx
 from .utils import read_ontology_file
