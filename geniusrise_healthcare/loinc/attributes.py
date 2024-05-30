@@ -34,12 +34,13 @@ def process_attributes(attributes_file: str, G: nx.DiGraph) -> None:
     log.info(f"Loading attributes from {attributes_file}")
 
     rows = read_csv_file(attributes_file)
-    headers = rows[0]
-    for row in rows[1:]:
+    for row in rows[1:]:  # Skip the header row
         try:
-            loinc_num = row[headers.index("LOINC_NUM")]
-            attribute_data = {header: value for header, value in zip(headers[1:], row[1:])}
+            loinc_num, attribute_name, attribute_value = row[0], row[1], row[2]
             if loinc_num in G:
-                G.nodes[loinc_num].update(attribute_data)
+                if "attributes" not in G.nodes[loinc_num]:
+                    G.nodes[loinc_num]["attributes"] = {}
+                G.nodes[loinc_num]["attributes"][attribute_name] = attribute_value
         except Exception as e:
             log.error(f"Error processing attribute {row}: {e}")
+            raise ValueError(f"Error processing attribute {row}: {e}")

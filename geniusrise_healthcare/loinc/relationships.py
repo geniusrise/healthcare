@@ -34,12 +34,10 @@ def process_relationships(relationships_file: str, G: nx.DiGraph) -> None:
     log.info(f"Loading relationships from {relationships_file}")
 
     rows = read_csv_file(relationships_file)
-    headers = rows[0]
-    for row in rows[1:]:
+    for row in rows[1:]:  # Skip the header row
         try:
-            loinc_num1 = row[headers.index("LOINC_NUM_1")]
-            loinc_num2 = row[headers.index("LOINC_NUM_2")]
-            relationship = row[headers.index("RELATIONSHIP")]
+            loinc_num1, relationship, loinc_num2 = row[0], row[1], row[2]
             G.add_edge(loinc_num1, loinc_num2, relationship=relationship)
         except Exception as e:
             log.error(f"Error processing relationship {row}: {e}")
+            raise ValueError(f"Error processing relationship {row}: {e}")

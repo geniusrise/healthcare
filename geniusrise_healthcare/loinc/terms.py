@@ -34,11 +34,28 @@ def process_terms(terms_file: str, G: nx.DiGraph) -> None:
     log.info(f"Loading terms from {terms_file}")
 
     rows = read_csv_file(terms_file)
-    headers = rows[0]
-    for row in rows[1:]:
+    for row in rows[1:]:  # Skip the header row
         try:
-            loinc_num = row[headers.index("LOINC_NUM")]
-            node_data = {header: value for header, value in zip(headers, row)}
-            G.add_node(loinc_num, **node_data)
+            loinc_num, component, property, time_aspect, system, scale, method, class_type = (
+                row[0],
+                row[1],
+                row[2],
+                row[3],
+                row[4],
+                row[5],
+                row[6],
+                row[7],
+            )
+            G.add_node(
+                loinc_num,
+                component=component,
+                property=property,
+                time_aspect=time_aspect,
+                system=system,
+                scale=scale,
+                method=method,
+                class_type=class_type,
+            )
         except Exception as e:
             log.error(f"Error processing term {row}: {e}")
+            raise ValueError(f"Error processing term {row}: {e}")

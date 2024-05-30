@@ -37,16 +37,20 @@ def process_supplementary(supplementary_file: str, G: nx.DiGraph) -> None:
     supplementary_elements = get_elements_by_tag(tree, "SupplementalRecord")
 
     for supplementary in supplementary_elements:
-        supplementary_ui = supplementary.findtext("SupplementalRecordUI")
-        supplementary_name = supplementary.findtext("SupplementalRecordName/String")
-        concepts = [
-            {"ui": c.findtext("ConceptUI"), "name": c.findtext("ConceptName/String")}
-            for c in supplementary.findall("ConceptList/Concept")
-        ]
+        try:
+            supplementary_ui = supplementary.findtext("SupplementalRecordUI")
+            name = supplementary.findtext("SupplementalRecordName/String")
+            if supplementary_ui:
+                G.add_node(supplementary_ui, name=name, type="supplementary")
 
-        if supplementary_ui:
-            G.add_node(supplementary_ui, name=supplementary_name, type="supplementary")
-            for concept in concepts:
-                if concept["ui"]:
-                    G.add_node(concept["ui"], name=concept["name"], type="concept")
-                    G.add_edge(supplementary_ui, concept["ui"], type="has_concept")
+                # Process concept relations
+                concepts = supplementary.findall("ConceptList/Concept")
+                for concept in concepts:
+                    concept_ui = concept.findtext("ConceptUI")
+                    concept_name = concept.findtext("ConceptName/String")
+                    if concept_ui:
+                        G.add_node(concept_ui, name=concept_name, type="concept")
+                        G.add_edge(supplementary_ui, concept_ui, type="has_concept")
+
+        except Exception as e:
+            log.error(f"Error processing supplementary concept record {supplementary}: {e}")

@@ -37,9 +37,18 @@ def process_qualifiers(qualifiers_file: str, G: nx.DiGraph) -> None:
     qualifier_elements = get_elements_by_tag(tree, "QualifierRecord")
 
     for qualifier in qualifier_elements:
-        qualifier_ui = qualifier.findtext("QualifierUI")
-        qualifier_name = qualifier.findtext("QualifierName/String")
-        tree_numbers = [tn.text for tn in qualifier.findall("TreeNumberList/TreeNumber")]
+        try:
+            qualifier_ui = qualifier.findtext("QualifierUI")
+            name = qualifier.findtext("QualifierName/String")
+            if qualifier_ui:
+                G.add_node(qualifier_ui, name=name, type="qualifier")
 
-        if qualifier_ui:
-            G.add_node(qualifier_ui, name=qualifier_name, type="qualifier", tree_numbers=tree_numbers)
+                # Process tree numbers
+                tree_numbers = qualifier.findall("TreeNumberList/TreeNumber")
+                for tree_number in tree_numbers:
+                    G.add_node(tree_number.text, type="tree_number")
+                    G.add_edge(qualifier_ui, tree_number.text, type="has_tree_number")
+
+        except Exception as e:
+            log.error(f"Error processing qualifier {qualifier}: {e}")
+            raise ValueError(f"Error processing qualifier {qualifier}: {e}")

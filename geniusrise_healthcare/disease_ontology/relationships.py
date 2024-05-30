@@ -35,11 +35,15 @@ def process_relationships(ontology_file: str, G: nx.DiGraph) -> None:
 
     ontology = read_ontology_file(ontology_file)
     for term in ontology.terms():
-        if term.id.startswith("DOID:"):
-            for parent in term.superclasses(with_self=False):
-                if parent.id.startswith("DOID:"):
-                    G.add_edge(term.id, parent.id, type="is_a")
-            for relationship, related_terms in term.relationships.items():
-                for related_term in related_terms:
-                    if related_term.id.startswith("DOID:"):
-                        G.add_edge(term.id, related_term.id, type=relationship.name)
+        try:
+            if term.id.startswith("DOID:"):
+                for parent in term.parents:
+                    if parent.id.startswith("DOID:"):
+                        G.add_edge(term.id, parent.id, type="is_a")
+                for relationship in term.relations:
+                    for related_term in term.relations[relationship]:
+                        if related_term.id.startswith("DOID:"):
+                            G.add_edge(term.id, related_term.id, type=relationship)
+        except Exception as e:
+            log.error(f"Error processing relationships for {term}: {e}")
+            raise ValueError(f"Error processing relationships for {term}: {e}")

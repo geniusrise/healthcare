@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# descriptors.py
 import logging
 import networkx as nx
 from .utils import read_xml_file, get_elements_by_tag
@@ -37,17 +38,27 @@ def process_descriptors(descriptors_file: str, G: nx.DiGraph) -> None:
     descriptor_elements = get_elements_by_tag(tree, "DescriptorRecord")
 
     for descriptor in descriptor_elements:
-        descriptor_ui = descriptor.findtext("DescriptorUI")
-        descriptor_name = descriptor.findtext("DescriptorName/String")
-        tree_numbers = [tn.text for tn in descriptor.findall("TreeNumberList/TreeNumber")]
-        concepts = [
-            {"ui": c.findtext("ConceptUI"), "name": c.findtext("ConceptName/String")}
-            for c in descriptor.findall("ConceptList/Concept")
-        ]
+        try:
+            descriptor_ui = descriptor.findtext("DescriptorUI")
+            name = descriptor.findtext("DescriptorName/String")
+            if descriptor_ui:
+                G.add_node(descriptor_ui, name=name, type="descriptor")
 
-        if descriptor_ui:
-            G.add_node(descriptor_ui, name=descriptor_name, type="descriptor", tree_numbers=tree_numbers)
-            for concept in concepts:
-                if concept["ui"]:
-                    G.add_node(concept["ui"], name=concept["name"], type="concept")
-                    G.add_edge(descriptor_ui, concept["ui"], type="has_concept")
+                # Process tree numbers
+                tree_numbers = descriptor.findall("TreeNumberList/TreeNumber")
+                for tree_number in tree_numbers:
+                    G.add_node(tree_number.text, type="tree_number")
+                    G.add_edge(descriptor_ui, tree_number.text, type="has_tree_number")
+
+                # Process concept relations
+                concepts = descriptor.findall("ConceptList/Concept")
+                for concept in concepts:
+                    concept_ui = concept.findtext("ConceptUI")
+                    concept_name = concept.findtext("ConceptName/String")
+                    if concept_ui:
+                        G.add_node(concept_ui, name=concept_name, type="concept")
+                        G.add_edge(descriptor_ui, concept_ui, type="has_concept")
+
+        except Exception as e:
+            log.error(f"Error processing descriptor {descriptor}: {e}")
+            raise ValueError(f"Error processing descriptor {descriptor}: {e}")
