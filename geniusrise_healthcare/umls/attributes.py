@@ -1,6 +1,21 @@
 # 🧠 Geniusrise
 # Copyright (C) 2023  geniusrise.ai
 #
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# 🧠 Geniusrise
+# Copyright (C) 2023  geniusrise.ai
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -14,11 +29,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import csv
 import logging
-
 import networkx as nx
 from tqdm import tqdm
+from .utils import read_rrf_file
 
 log = logging.getLogger(__name__)
 
@@ -36,15 +50,14 @@ def process_attributes_file(attributes_file: str, G: nx.DiGraph) -> None:
     """
     log.info(f"Loading attributes from {attributes_file}")
 
-    with open(attributes_file, "r", encoding="utf-8") as f:
-        reader = csv.reader(f, delimiter="|")
-        for row in tqdm(reader):
-            try:
-                cui, atn, atv = row[0], row[4], row[5]
-                if cui in G:
-                    if "attributes" not in G.nodes[cui]:
-                        G.nodes[cui]["attributes"] = {}
-                    G.nodes[cui]["attributes"][atn] = atv
-            except Exception as e:
-                log.error(f"Error processing attribute {row}: {e}")
-                raise ValueError(f"Error processing attribute {row}: {e}")
+    rows = read_rrf_file(attributes_file)
+    for row in tqdm(rows):
+        try:
+            cui, atn, atv = row[0], row[4], row[5]
+            if cui in G:
+                if "attributes" not in G.nodes[cui]:
+                    G.nodes[cui]["attributes"] = {}
+                G.nodes[cui]["attributes"][atn] = atv
+        except Exception as e:
+            log.error(f"Error processing attribute {row}: {e}")
+            raise ValueError(f"Error processing attribute {row}: {e}")
