@@ -63,4 +63,4 @@ repos:
           - types-requests
         exclude: ^geniusrise/cli/tests/
 
-exclude: ^(tests|test)/
+exclude: ^(tests|test|.recycle)/
