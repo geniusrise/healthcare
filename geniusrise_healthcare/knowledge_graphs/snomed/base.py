@@ -18,7 +18,6 @@ import os
 from typing import Dict, Tuple
 
 import networkx as nx
-import torch
 
 from .concepts import process_concept_file
 from .concrete_relationships import process_concrete_values_file
@@ -56,7 +55,6 @@ def load_snomed_into_networkx(
     Returns:
         Tuple containing the graph, description_id_to_concept, concept_id_to_concept, and concept_id_to_text_definition mappings.
     """
-    device = torch.device("cuda" if torch.cuda.is_available() and use_cuda else "cpu")
 
     G = nx.DiGraph()
     description_id_to_concept: Dict[str, str] = {}
