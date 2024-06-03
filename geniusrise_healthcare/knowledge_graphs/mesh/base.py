@@ -24,7 +24,7 @@ from .supplementary import process_supplementary
 log = logging.getLogger(__name__)
 
 
-def load_mesh_into_networkx(mesh_path: str) -> nx.DiGraph:
+def load_mesh(mesh_path: str) -> nx.DiGraph:
     """
     Loads MeSH data into a NetworkX graph.
 

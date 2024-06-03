@@ -13,6 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import load_disease_ontology_into_networkx
+from .base import load_disease_ontology
 from .diseases import process_diseases
 from .relationships import process_relationships

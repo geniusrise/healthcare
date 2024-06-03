@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import load_drugbank_into_networkx
+from .base import load_drugbank
 from .drugs import process_drugs
 from .interactions import process_interactions
 from .targets import process_targets

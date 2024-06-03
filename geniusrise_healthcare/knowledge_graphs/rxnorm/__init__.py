@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from .attributes import process_attributes_file
-from .base import load_rxnorm_into_networkx
+from .base import load_rxnorm
 from .concepts import process_concepts_file
 from .relationships import process_relationships_file
 from .sources import process_sources_file

@@ -29,7 +29,7 @@ from .text_definitions import process_text_definition_file
 log = logging.getLogger(__name__)
 
 
-def load_snomed_into_networkx(
+def load_snomed(
     extract_path: str,
     tokenizer=None,
     model=None,
@@ -56,11 +56,6 @@ def load_snomed_into_networkx(
         Tuple containing the graph, description_id_to_concept, concept_id_to_concept, and concept_id_to_text_definition mappings.
     """
 
-    G = nx.DiGraph()
-    description_id_to_concept: Dict[str, str] = {}
-    concept_id_to_concept: Dict[str, str] = {}
-    concept_id_to_text_definition: Dict[str, str] = {}
-
     concept_file = os.path.join(extract_path, f"sct2_Description_Snapshot-en_{version}.txt")
     relationship_file = os.path.join(extract_path, f"sct2_Relationship_Snapshot_{version}.txt")
     concrete_values_file = os.path.join(extract_path, f"sct2_RelationshipConcreteValues_Snapshot_{version}.txt")
@@ -71,14 +66,6 @@ def load_snomed_into_networkx(
     process_concept_file(
         concept_file=concept_file,
         G=G,
-        description_id_to_concept=description_id_to_concept,
-        concept_id_to_concept=concept_id_to_concept,
-        tokenizer=tokenizer,
-        model=model,
-        faiss_index=faiss_index,
-        use_cuda=use_cuda,
-        batch_size=batch_size,
-        skip_embedding=skip_embedding,
     )
 
     process_relationship_file(relationship_file, G)

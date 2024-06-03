@@ -29,13 +29,12 @@ from .sources import process_sources_file
 log = logging.getLogger(__name__)
 
 
-def load_umls_into_networkx(umls_path: str, version: str = "2022AA") -> Tuple[nx.DiGraph, Dict[str, Dict]]:
+def load_umls(umls_path: str) -> Tuple[nx.DiGraph, Dict[str, Dict]]:
     """
     Loads UMLS data into a NetworkX graph.
 
     Args:
         umls_path (str): Path to the directory containing the UMLS files.
-        version (str): Version of the UMLS release (default is "2022AA").
 
     Returns:
         Tuple containing the NetworkX graph and the source_to_info dictionary.

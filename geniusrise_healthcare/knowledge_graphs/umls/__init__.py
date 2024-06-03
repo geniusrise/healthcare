@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from .attributes import process_attributes_file
-from .base import load_umls_into_networkx
+from .base import load_umls
 from .concepts import process_concepts_file
 from .definitions import process_definitions_file
 from .languages import process_languages_file

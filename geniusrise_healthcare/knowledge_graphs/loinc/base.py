@@ -23,7 +23,7 @@ from .attributes import process_attributes
 log = logging.getLogger(__name__)
 
 
-def load_loinc_into_networkx(loinc_path: str) -> nx.DiGraph:
+def load_loinc(loinc_path: str) -> nx.DiGraph:
     """
     Loads LOINC data into a NetworkX graph.
 

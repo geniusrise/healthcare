@@ -26,7 +26,7 @@ from .transporters import process_transporters
 log = logging.getLogger(__name__)
 
 
-def load_drugbank_into_networkx(drugbank_path: str) -> nx.DiGraph:
+def load_drugbank(drugbank_path: str) -> nx.DiGraph:
     """
     Loads DrugBank data into a NetworkX graph.
 

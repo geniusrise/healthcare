@@ -13,31 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# base.py
+import csv
 import logging
-import networkx as nx
-from .terms import process_terms
-from .relationships import process_relationships
-from .attributes import process_attributes
+from typing import List, Any
 
 log = logging.getLogger(__name__)
 
 
-def load_gene_ontology(ontology_path: str) -> nx.DiGraph:
+def read_rrf_file(file_path: str, delimiter: str = "|") -> List[List[Any]]:
     """
-    Loads Gene Ontology data into a NetworkX graph.
+    Reads an RRF (Rich Record Format) file and returns its contents as a list of rows.
 
     Args:
-        ontology_path (str): Path to the Gene Ontology OBO or OWL file.
+        file_path (str): Path to the RRF file.
+        delimiter (str): Delimiter used in the file (default is '|').
 
     Returns:
-        The NetworkX graph containing Gene Ontology data.
+        List of rows, where each row is a list of values.
     """
-    G = nx.DiGraph()
-
-    process_terms(ontology_path, G)
-    process_relationships(ontology_path, G)
-    process_attributes(ontology_path, G)
-
-    log.info(f"Loaded {G.number_of_nodes()} nodes and {G.number_of_edges()} edges into the graph.")
-    return G
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            reader = csv.reader(file, delimiter=delimiter)
+            return list(reader)
+    except Exception as e:
+        log.error(f"Error reading file {file_path}: {e}")
+        raise ValueError(f"Error reading file {file_path}: {e}")

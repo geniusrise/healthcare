@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import load_gene_ontology_into_networkx
+from .base import load_gene_ontology
 from .terms import process_terms
 from .relationships import process_relationships
 from .attributes import process_attributes

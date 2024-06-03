@@ -26,7 +26,7 @@ from .semantic_types import process_semantic_types_file
 log = logging.getLogger(__name__)
 
 
-def load_rxnorm_into_networkx(rxnorm_path: str, version: str = "2022AA") -> Tuple[nx.DiGraph, Dict[str, Dict]]:
+def load_rxnorm(rxnorm_path: str, version: str = "2022AA") -> Tuple[nx.DiGraph, Dict[str, Dict]]:
     """
     Loads RxNorm data into a NetworkX graph.
 

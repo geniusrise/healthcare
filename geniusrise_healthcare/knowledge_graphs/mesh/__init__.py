@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import load_mesh_into_networkx
+from .base import load_mesh
 from .descriptors import process_descriptors
 from .qualifiers import process_qualifiers
 from .supplementary import process_supplementary

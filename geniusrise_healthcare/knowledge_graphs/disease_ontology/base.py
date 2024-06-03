@@ -21,7 +21,7 @@ from .relationships import process_relationships
 log = logging.getLogger(__name__)
 
 
-def load_disease_ontology_into_networkx(ontology_file: str, load_relationships: bool = True) -> nx.DiGraph:
+def load_disease_ontology(ontology_file: str, load_relationships: bool = True) -> nx.DiGraph:
     """
     Loads Disease Ontology data into a NetworkX graph.
 
