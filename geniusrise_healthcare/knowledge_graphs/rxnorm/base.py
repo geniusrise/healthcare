@@ -36,8 +36,8 @@ def load_rxnorm(G: nx.DiGraph, rxnorm_path: str) -> Tuple[nx.DiGraph, Dict[str, 
     Returns:
         Tuple containing the NetworkX graph and the source_to_info dictionary.
     """
-    rxcui_to_concept: Dict[str, Dict] = {}
-    source_to_info: Dict[str, Dict] = {}
+    # rxcui_to_concept: Dict[str, Dict] = {}
+    # source_to_info: Dict[str, Dict] = {}
 
     concepts_file = os.path.join(rxnorm_path, "RXNCONSO.RRF")
     relationships_file = os.path.join(rxnorm_path, "RXNREL.RRF")
@@ -45,7 +45,7 @@ def load_rxnorm(G: nx.DiGraph, rxnorm_path: str) -> Tuple[nx.DiGraph, Dict[str, 
     semantic_types_file = os.path.join(rxnorm_path, "RXNSTY.RRF")
     os.path.join(rxnorm_path, "RXNSAB.RRF")
 
-    process_concepts_file(concepts_file, G, rxcui_to_concept)
+    process_concepts_file(concepts_file, G)
     process_relationships_file(relationships_file, G)
     process_attributes_file(attributes_file, G)
     # process_sources_file(sources_file, source_to_info)

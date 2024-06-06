@@ -37,7 +37,7 @@ def load():
 
     # load_umls(G, "./data/umls/2024AA/META")
     # load_snomed(G, "./data/snomed/snomed/Snapshot/Terminology", version="INT_20240501")
-    load_rxnorm(G, "")
+    load_rxnorm(G, "data/rxnorm/rrf")
 
 
 if __name__ == "__main__":

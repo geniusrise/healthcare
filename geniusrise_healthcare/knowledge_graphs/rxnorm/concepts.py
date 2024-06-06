@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import logging
-from typing import Dict
 import networkx as nx
 from tqdm import tqdm
 from .utils import read_rrf_file
@@ -22,7 +21,7 @@ from .utils import read_rrf_file
 log = logging.getLogger(__name__)
 
 
-def process_concepts_file(concepts_file: str, G: nx.DiGraph, rxcui_to_concept: Dict[str, Dict]) -> None:
+def process_concepts_file(concepts_file: str, G: nx.DiGraph) -> None:
     """
     Processes the RxNorm concepts file (RXNCONSO.RRF) and adds the concepts to the graph.
 
@@ -50,15 +49,6 @@ def process_concepts_file(concepts_file: str, G: nx.DiGraph, rxcui_to_concept: D
                 row[11],
             )
             G.add_node(rxcui, rxaui=rxaui, term=term, language=language, code=code, sab=sab, tty=tty)
-            rxcui_to_concept[rxcui] = {
-                "rxaui": rxaui,
-                "term": term,
-                "language": language,
-                "code": code,
-                "sab": sab,
-                "tty": tty,
-                "source": source,
-            }
         except Exception as e:
             log.error(f"Error processing concept {row}: {e}")
             raise ValueError(f"Error processing concept {row}: {e}")
