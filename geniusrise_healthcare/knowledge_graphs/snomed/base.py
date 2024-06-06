@@ -37,6 +37,7 @@ def load_snomed(
     Loads SNOMED CT data into a NetworkX graph.
 
     Args:
+        G: (nx.DiGraph): The networkx graph.
         extract_path (str): Path to the directory containing the SNOMED CT files.
         version (str): Version of the SNOMED CT files (default is "INT_20230901").
 

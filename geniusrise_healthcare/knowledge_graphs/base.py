@@ -20,7 +20,6 @@ import networkx as nx
 from disease_ontology.base import load_disease_ontology
 from drugbank.base import load_drugbank
 from gene_ontology.base import load_gene_ontology
-from loinc.base import load_loinc
 from mesh.base import load_mesh
 from rxnorm.base import load_rxnorm
 from snomed.base import load_snomed
@@ -31,14 +30,14 @@ logging.basicConfig(level=logging.INFO)
 
 
 def load():
-    G = nx.DiGraph()
+    nx.DiGraph()
 
     # for graph in graphs:
 
     # load_umls(G, "./data/umls/2024AA/META")
     # load_snomed(G, "./data/snomed/snomed/Snapshot/Terminology", version="INT_20240501")
     # load_rxnorm(G, "data/rxnorm/rrf")
-    load_mesh(G, "./data/mesh")
+    # load_mesh(G, "./data/mesh")
 
 
 if __name__ == "__main__":

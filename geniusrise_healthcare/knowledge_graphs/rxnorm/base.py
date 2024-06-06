@@ -31,6 +31,7 @@ def load_rxnorm(G: nx.DiGraph, rxnorm_path: str) -> Tuple[nx.DiGraph, Dict[str, 
     Loads RxNorm data into a NetworkX graph.
 
     Args:
+        G: (nx.DiGraph): The networkx graph.
         rxnorm_path (str): Path to the directory containing the RxNorm files.
 
     Returns:

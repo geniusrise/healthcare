@@ -34,6 +34,7 @@ def load_umls(G: nx.DiGraph, umls_path: str) -> nx.DiGraph:
     Loads UMLS data into a NetworkX graph.
 
     Args:
+        G: (nx.DiGraph): The networkx graph.
         umls_path (str): Path to the directory containing the UMLS files.
 
     Returns:
