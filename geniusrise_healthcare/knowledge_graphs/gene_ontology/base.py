@@ -23,21 +23,21 @@ from .attributes import process_attributes
 log = logging.getLogger(__name__)
 
 
-def load_gene_ontology(ontology_path: str) -> nx.DiGraph:
+def load_gene_ontology(G: nx.DiGraph, ontology_file: str) -> nx.DiGraph:
     """
     Loads Gene Ontology data into a NetworkX graph.
 
     Args:
-        ontology_path (str): Path to the Gene Ontology OBO or OWL file.
+        G: (nx.DiGraph): The networkx graph.
+        ontology_file (str): Path to the Gene Ontology OWL file.
 
     Returns:
         The NetworkX graph containing Gene Ontology data.
     """
-    G = nx.DiGraph()
 
-    process_terms(ontology_path, G)
-    process_relationships(ontology_path, G)
-    process_attributes(ontology_path, G)
+    process_terms(ontology_file, G)
+    process_relationships(ontology_file, G)
+    process_attributes(ontology_file, G)
 
     log.info(f"Loaded {G.number_of_nodes()} nodes and {G.number_of_edges()} edges into the graph.")
     return G
