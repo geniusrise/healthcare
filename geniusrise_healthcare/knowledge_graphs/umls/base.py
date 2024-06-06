@@ -29,7 +29,7 @@ from .sources import process_sources_file
 log = logging.getLogger(__name__)
 
 
-def load_umls(umls_path: str) -> Tuple[nx.DiGraph, Dict[str, Dict]]:
+def load_umls(G: nx.DiGraph, umls_path: str) -> nx.DiGraph:
     """
     Loads UMLS data into a NetworkX graph.
 
@@ -39,7 +39,6 @@ def load_umls(umls_path: str) -> Tuple[nx.DiGraph, Dict[str, Dict]]:
     Returns:
         Tuple containing the NetworkX graph and the source_to_info dictionary.
     """
-    G = nx.DiGraph()
     cui_to_concept: Dict[str, Dict] = {}
     source_to_info: Dict[str, Dict] = {}
 
@@ -59,7 +58,7 @@ def load_umls(umls_path: str) -> Tuple[nx.DiGraph, Dict[str, Dict]]:
     process_semantic_network_files(srdef_file, srstr_file, G)
     process_attributes_file(attributes_file, G)
     process_languages_file(concepts_file, G)
-    process_sources_file(sources_file, source_to_info)
+    # process_sources_file(sources_file, source_to_info)
 
     log.info(f"Loaded {G.number_of_nodes()} nodes and {G.number_of_edges()} edges into the graph.")
-    return G, source_to_info
+    return G

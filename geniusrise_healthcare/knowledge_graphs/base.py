@@ -32,9 +32,12 @@ logging.basicConfig(level=logging.INFO)
 
 
 def load():
+    G = nx.DiGraph()
+
     # for graph in graphs:
 
-    load_umls("./data/umls/2024AA/META")
+    # load_umls(G, "./data/umls/2024AA/META")
+    load_snomed(G, "./data/snomed/snomed/Snapshot/Terminology", version="INT_20240501")
 
 
 if __name__ == "__main__":

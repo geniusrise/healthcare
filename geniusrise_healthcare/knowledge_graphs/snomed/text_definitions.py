@@ -17,17 +17,17 @@ import csv
 import logging
 from typing import Dict
 from tqdm import tqdm
+import networkx as nx
 
 log = logging.getLogger(__name__)
 
 
-def process_text_definition_file(text_definition_file: str, concept_id_to_text_definition: Dict[str, str]) -> None:
+def process_text_definition_file(text_definition_file: str, G: nx.DiGraph) -> None:
     """
     Processes the SNOMED CT text definition file and maps concept IDs to their text definitions.
 
     Args:
         text_definition_file (str): Path to the text definition file.
-        concept_id_to_text_definition (Dict[str, str]): Dictionary to store the mapping from concept IDs to text definitions.
 
     Returns:
         None
@@ -49,11 +49,15 @@ def process_text_definition_file(text_definition_file: str, concept_id_to_text_d
                     row[8],
                 )
                 if active == "1":
-                    concept_id_to_text_definition[concept_id] = {  # type: ignore
-                        "term": term,
-                        "definition_type": definition_type,
-                        "case_significance": case_significance,
+                    attrs = {
+                        int(concept_id): {
+                            "term": term,
+                            "definition_type": definition_type,
+                            "case_significance": case_significance,
+                        }
                     }
+                    nx.set_node_attributes(G, attrs)
+
             except Exception as e:
                 log.error(f"Error processing text definition {row}: {e}")
                 raise ValueError(f"Error processing text definition {row}: {e}")

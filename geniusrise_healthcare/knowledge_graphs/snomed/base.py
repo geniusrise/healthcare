@@ -30,27 +30,16 @@ log = logging.getLogger(__name__)
 
 
 def load_snomed(
+    G: nx.DiGraph,
     extract_path: str,
-    tokenizer=None,
-    model=None,
-    faiss_index=None,
     version: str = "INT_20230901",
-    use_cuda: bool = True,
-    batch_size: int = 10000,
-    skip_embedding: bool = False,
-) -> Tuple[nx.DiGraph, Dict[str, str], Dict[str, str], Dict[str, str]]:
+) -> nx.DiGraph:
     """
     Loads SNOMED CT data into a NetworkX graph.
 
     Args:
         extract_path (str): Path to the directory containing the SNOMED CT files.
-        tokenizer: Tokenizer for processing text data (optional).
-        model: Model for generating embeddings (optional).
-        faiss_index: Faiss index for embedding storage and search (optional).
         version (str): Version of the SNOMED CT files (default is "INT_20230901").
-        use_cuda (bool): Flag to use CUDA for processing (default is True).
-        batch_size (int): Batch size for processing embeddings (default is 10000).
-        skip_embedding (bool): Flag to skip embedding generation (default is False).
 
     Returns:
         Tuple containing the graph, description_id_to_concept, concept_id_to_concept, and concept_id_to_text_definition mappings.
@@ -63,16 +52,13 @@ def load_snomed(
     text_definition_file = os.path.join(extract_path, f"sct2_TextDefinition_Snapshot-en_{version}.txt")
     refsets_file = os.path.join(extract_path, f"sct2_sRefset_OWLExpressionSnapshot_{version}.txt")
 
-    process_concept_file(
-        concept_file=concept_file,
-        G=G,
-    )
+    process_concept_file(concept_file=concept_file, G=G)
 
-    process_relationship_file(relationship_file, G)
-    process_concrete_values_file(concrete_values_file, G)
-    process_stated_relationship_file(stated_relationship_file, G)
-    process_text_definition_file(text_definition_file, concept_id_to_text_definition)
-    process_refsets_file(refsets_file, G)
+    process_relationship_file(relationship_file, G=G)
+    process_concrete_values_file(concrete_values_file, G=G)
+    process_stated_relationship_file(stated_relationship_file, G=G)
+    process_text_definition_file(text_definition_file, G=G)
+    process_refsets_file(refsets_file, G=G)
 
     log.info(f"Loaded {G.number_of_nodes()} nodes and {G.number_of_edges()} edges into the graph.")
-    return G, description_id_to_concept, concept_id_to_concept, concept_id_to_text_definition
+    return G
