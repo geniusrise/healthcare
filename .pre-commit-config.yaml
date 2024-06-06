@@ -6,13 +6,16 @@ repos:
         args: [--line-length=120]
 
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.12
+    rev: v1.5.2
     hooks:
       - id: insert-license
         name: "Insert license header in C++ source files"
-        args: [--license-filepath=assets/header.txt,
-               '--comment-style=#',
-               --detect-license-in-X-top-lines=2]
+        args:
+          [
+            --license-filepath=assets/header.txt,
+            "--comment-style=#",
+            --detect-license-in-X-top-lines=2,
+          ]
         types_or: [python, makefile, dockerfile]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -38,22 +41,10 @@ repos:
         additional_dependencies:
           - "prettier@2.6.2"
 
-  - repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.9.0
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.3.1
     hooks:
-      - id: python-check-blanket-noqa
-      - id: python-check-mock-methods
-      - id: python-use-type-annotations
-
-  - repo: https://github.com/pycqa/flake8
-    rev: 5.0.4
-    hooks:
-      - id: flake8
-        additional_dependencies:
-          - flake8-bugbear
-          - flake8-builtins
-          - flake8-comprehensions
-          - pep8-naming
+      - id: autoflake
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v0.920

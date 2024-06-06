@@ -15,7 +15,7 @@
 
 import logging
 import os
-from typing import Dict, Tuple
+from typing import Dict
 import networkx as nx
 from .concepts import process_concepts_file
 from .definitions import process_definitions_file
@@ -49,7 +49,7 @@ def load_umls(G: nx.DiGraph, umls_path: str) -> nx.DiGraph:
     srdef_file = os.path.join(umls_path, "SRDEF")
     srstr_file = os.path.join(umls_path, "SRSTR")
     attributes_file = os.path.join(umls_path, "MRSAT.RRF")
-    sources_file = os.path.join(umls_path, "MRSAB.RRF")
+    os.path.join(umls_path, "MRSAB.RRF")
 
     process_concepts_file(concepts_file, G, cui_to_concept)
     process_definitions_file(definitions_file, G)

@@ -15,7 +15,6 @@
 
 import csv
 import logging
-from typing import Dict
 from tqdm import tqdm
 import networkx as nx
 

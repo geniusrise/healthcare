@@ -16,7 +16,7 @@
 import csv
 import logging
 import sys
-from typing import Dict, List
+from typing import List
 
 import networkx as nx
 import numpy as np
@@ -39,7 +39,6 @@ def process_concept_file(concept_file: str, G: nx.DiGraph) -> None:
         None
     """
     batch_ids: List[int] = []
-    batch_count = 0
 
     csv.field_size_limit(sys.maxsize)
 

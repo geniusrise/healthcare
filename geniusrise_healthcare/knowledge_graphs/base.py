@@ -16,7 +16,6 @@
 # base.py
 import logging
 import networkx as nx
-from typing import List
 
 from disease_ontology.base import load_disease_ontology
 from drugbank.base import load_drugbank
@@ -37,7 +36,8 @@ def load():
     # for graph in graphs:
 
     # load_umls(G, "./data/umls/2024AA/META")
-    load_snomed(G, "./data/snomed/snomed/Snapshot/Terminology", version="INT_20240501")
+    # load_snomed(G, "./data/snomed/snomed/Snapshot/Terminology", version="INT_20240501")
+    load_rxnorm(G, "")
 
 
 if __name__ == "__main__":
