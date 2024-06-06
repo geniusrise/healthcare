@@ -24,17 +24,17 @@ from .supplementary import process_supplementary
 log = logging.getLogger(__name__)
 
 
-def load_mesh(mesh_path: str) -> nx.DiGraph:
+def load_mesh(G: nx.DiGraph, mesh_path: str) -> nx.DiGraph:
     """
     Loads MeSH data into a NetworkX graph.
 
     Args:
+        G: (nx.DiGraph): The networkx graph.
         mesh_path (str): Path to the directory containing the MeSH XML files.
 
     Returns:
         The NetworkX graph containing MeSH data.
     """
-    G = nx.DiGraph()
 
     descriptors_file = os.path.join(mesh_path, "desc2024.xml")
     qualifiers_file = os.path.join(mesh_path, "qual2024.xml")
