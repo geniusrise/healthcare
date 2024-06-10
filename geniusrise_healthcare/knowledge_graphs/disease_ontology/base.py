@@ -21,28 +21,25 @@ from .relationships import process_relationships
 log = logging.getLogger(__name__)
 
 
-def load_disease_ontology(ontology_file: str, load_relationships: bool = True) -> nx.DiGraph:
+def load_disease_ontology(G: nx.DiGraph, ontology_file: str) -> nx.DiGraph:
     """
     Loads Disease Ontology data into a NetworkX graph.
 
     Args:
+        G: (nx.DiGraph): The networkx graph.
         ontology_file (str): Path to the Disease Ontology OBO or OWL file.
-        load_relationships (bool): Whether to load disease relationships (default: True).
 
     Returns:
         The NetworkX graph containing Disease Ontology data.
     """
-    G = nx.DiGraph()
-
     try:
         process_diseases(ontology_file, G)
 
-        if load_relationships:
-            process_relationships(ontology_file, G)
+        process_relationships(ontology_file, G)
 
         log.info(f"Loaded {G.number_of_nodes()} nodes and {G.number_of_edges()} edges into the graph.")
     except Exception as e:
         log.error(f"Error loading Disease Ontology data: {e}")
-        raise
+        raise e
 
     return G

@@ -30,7 +30,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 def load():
-    G = nx.DiGraph()
+    nx.DiGraph()
 
     # for graph in graphs:
 
@@ -38,7 +38,8 @@ def load():
     # load_snomed(G, "./data/snomed/snomed/Snapshot/Terminology", version="INT_20240501")
     # load_rxnorm(G, "data/rxnorm/rrf")
     # load_mesh(G, "./data/mesh")
-    load_gene_ontology(G, "data/gene_ontology/go.owl")
+    # load_gene_ontology(G, "data/gene_ontology/go.owl")
+    # load_disease_ontology(G, "data/disease_ontology/HumanDiseaseOntology/src/ontology/releases/doid-merged.owl")
 
 
 if __name__ == "__main__":
