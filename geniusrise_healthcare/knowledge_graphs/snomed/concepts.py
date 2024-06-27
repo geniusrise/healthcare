@@ -16,7 +16,6 @@
 import csv
 import logging
 import sys
-from typing import List
 
 import networkx as nx
 import numpy as np
@@ -38,49 +37,24 @@ def process_concept_file(concept_file: str, G: nx.DiGraph) -> None:
     Returns:
         None
     """
-    batch_ids: List[int] = []
-
     csv.field_size_limit(sys.maxsize)
 
-    with open(concept_file, "rbU") as f:
-        num_lines = sum(1 for _ in f)
-
     log.info(f"Loading concepts from {concept_file}")
-    with open(concept_file, "r") as f:  # type: ignore
-        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)  # type: ignore
-        next(reader)
-        for row in tqdm(reader, total=num_lines):
+
+    with open(concept_file, "r") as f:
+        reader = csv.reader(f, delimiter="\t")
+        next(reader)  # Skip header
+        for row in tqdm(reader):
             try:
-                (
-                    description_id,
-                    active,
-                    definition_status,
-                    concept_id,
-                    language,
-                    type_id,
-                    concept_name,
-                    case_significance,
-                ) = (
-                    row[0],
-                    row[2],
-                    row[3],
-                    row[4],
-                    row[5],
-                    row[6],
-                    row[7],
-                    row[8],
-                )
-
-                if active == "1" and language == "en":
-                    semantic_tag, fsn_without_tag = extract_and_remove_semantic_tag(concept_name.lower())
+                (id, effective_time, active, module_id, definition_status_id) = row[:5]
+                if active == "1":
                     G.add_node(
-                        int(concept_id),
-                        type=type_id,
-                        tag=semantic_tag,
-                        definition_status=definition_status,
-                        case_significance=case_significance,
+                        id,
+                        type="concept",
+                        effective_time=effective_time,
+                        module_id=module_id,
+                        definition_status_id=definition_status_id,
                     )
-
             except Exception as e:
-                log.error(f"Error processing node {row}: {e}")
-                raise ValueError(f"Error processing node {row}: {e}")
+                log.error(f"Error processing concept {row}: {e}")
+                raise ValueError(f"Error processing concept {row}: {e}")

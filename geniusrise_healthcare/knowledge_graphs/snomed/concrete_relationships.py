@@ -33,32 +33,36 @@ def process_concrete_values_file(concrete_values_file: str, G: nx.DiGraph) -> No
     Returns:
         None
     """
-    with open(concrete_values_file, "rbU") as f:
-        num_lines = sum(1 for _ in f)
-
     log.info(f"Loading concrete values from {concrete_values_file}")
-    with open(concrete_values_file, "r") as f:  # type: ignore
-        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)  # type: ignore
-        next(reader)
-        for row in tqdm(reader, total=num_lines):
+
+    with open(concrete_values_file, "r") as f:
+        reader = csv.reader(f, delimiter="\t")
+        next(reader)  # Skip header
+        for row in tqdm(reader):
             try:
-                source_id, value, active, relationship_type, relationship_group, characteristic_type, refinability = (
-                    row[4],
-                    row[5],
-                    row[2],
-                    row[7],
-                    row[6],
-                    row[8],
-                    row[9],
-                )
-                if active == "1":
+                (
+                    id,
+                    effective_time,
+                    active,
+                    module_id,
+                    source_id,
+                    value,
+                    relationship_group,
+                    type_id,
+                    characteristic_type_id,
+                    modifier_id,
+                ) = row[:10]
+                if active == "1" and source_id in G:
                     G.add_edge(
-                        int(source_id),
-                        value,
-                        relationship_type=relationship_type,
+                        source_id,
+                        f"value_{id}",
+                        id=id,
+                        type="concrete_value",
+                        value=value,
                         relationship_group=relationship_group,
-                        characteristic_type=characteristic_type,
-                        refinability=refinability,
+                        type_id=type_id,
+                        characteristic_type_id=characteristic_type_id,
+                        modifier_id=modifier_id,
                     )
             except Exception as e:
                 log.error(f"Error processing concrete value {row}: {e}")

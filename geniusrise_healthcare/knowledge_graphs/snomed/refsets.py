@@ -84,44 +84,31 @@ def parse_owl_functional(owl_expression: str, referenced_component_id: str) -> L
         raise ValueError(f"Error parsing OWL expression {owl_expression}: {e}")
 
 
-def process_refsets_file(owl_file: str, G: nx.DiGraph) -> None:
+def process_refsets_file(refsets_file: str, G: nx.DiGraph) -> None:
     """
     Processes the SNOMED CT OWL refsets file and adds the relationships to the graph.
 
     Args:
-        owl_file (str): Path to the OWL refsets file.
+        refsets_file (str): Path to the OWL refsets file.
         G (nx.DiGraph): The NetworkX graph to which the relationships will be added.
 
     Returns:
         None
     """
-    with open(owl_file, "rbU") as f:
-        num_lines = sum(1 for _ in f)
+    log.info(f"Loading OWL refsets from {refsets_file}")
 
-    log.info(f"Loading OWL expressions from {owl_file}")
-    with open(owl_file, "r") as f:  # type: ignore
-        reader = csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE)  # type: ignore
-        next(reader)
-        for row in tqdm(reader, total=num_lines):
+    with open(refsets_file, "r") as f:
+        reader = csv.reader(f, delimiter="\t")
+        next(reader)  # Skip header
+        for row in tqdm(reader):
             try:
-                owl_expression, referenced_component_id, refset_id, module_id = (
-                    row[6],
-                    row[4],
-                    row[5],
-                    row[3],
-                )
-                try:
-                    edges = parse_owl_functional(owl_expression, referenced_component_id)
-                except:
-                    continue  # ignore OWL expression parsing failures (1 in 2024)
-                for source, target, relationship_type in edges:
-                    G.add_edge(
-                        source,
-                        target,
-                        relationship_type=relationship_type,
-                        refset_id=refset_id,
-                        module_id=module_id,
+                (id, effective_time, active, module_id, refset_id, referenced_component_id, owl_expression) = row[:7]
+                if active == "1" and referenced_component_id in G:
+                    if "owl_axioms" not in G.nodes[referenced_component_id]:
+                        G.nodes[referenced_component_id]["owl_axioms"] = []
+                    G.nodes[referenced_component_id]["owl_axioms"].append(
+                        {"id": id, "refset_id": refset_id, "owl_expression": owl_expression}
                     )
             except Exception as e:
-                log.error(f"Error processing OWL expression {row}: {e}")
-                raise e
+                log.error(f"Error processing OWL refset {row}: {e}")
+                raise ValueError(f"Error processing OWL refset {row}: {e}")

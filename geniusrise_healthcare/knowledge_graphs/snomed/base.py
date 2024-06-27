@@ -19,6 +19,7 @@ import os
 import networkx as nx
 
 from .concepts import process_concept_file
+from .descriptions import process_descriptions_file
 from .concrete_relationships import process_concrete_values_file
 from .refsets import process_refsets_file
 from .relationships import process_relationship_file
@@ -45,7 +46,8 @@ def load_snomed(
         Tuple containing the graph, description_id_to_concept, concept_id_to_concept, and concept_id_to_text_definition mappings.
     """
 
-    concept_file = os.path.join(extract_path, f"sct2_Description_Snapshot-en_{version}.txt")
+    concept_file = os.path.join(extract_path, f"sct2_Concept_Snapshot_{version}.txt")
+    description_file = os.path.join(extract_path, f"sct2_Description_Snapshot-en_{version}.txt")
     relationship_file = os.path.join(extract_path, f"sct2_Relationship_Snapshot_{version}.txt")
     concrete_values_file = os.path.join(extract_path, f"sct2_RelationshipConcreteValues_Snapshot_{version}.txt")
     stated_relationship_file = os.path.join(extract_path, f"sct2_StatedRelationship_Snapshot_{version}.txt")
@@ -53,7 +55,7 @@ def load_snomed(
     refsets_file = os.path.join(extract_path, f"sct2_sRefset_OWLExpressionSnapshot_{version}.txt")
 
     process_concept_file(concept_file=concept_file, G=G)
-
+    process_descriptions_file(descriptions_file=description_file, G=G)
     process_relationship_file(relationship_file, G=G)
     process_concrete_values_file(concrete_values_file, G=G)
     process_stated_relationship_file(stated_relationship_file, G=G)
