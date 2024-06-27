@@ -39,9 +39,9 @@ def process_definitions_file(definitions_file: str, G: nx.DiGraph) -> None:
         try:
             cui, sab, defn = row[0], row[4], row[5]
             if cui in G:
-                if "definitions" not in G.nodes[cui]:
-                    G.nodes[cui]["definitions"] = []
-                G.nodes[cui]["definitions"].append({"sab": sab, "defn": defn})
+                G.nodes[cui]["definitions"] = G.nodes[cui].get("definitions", []) + [
+                    {"source": sab, "definition": defn}
+                ]
         except Exception as e:
             log.error(f"Error processing definition {row}: {e}")
             raise ValueError(f"Error processing definition {row}: {e}")
