@@ -22,7 +22,7 @@ import faiss
 import os
 import pickle
 
-from base import load_graph as load
+from .base import load_graph as load
 
 log = logging.getLogger(__name__)
 

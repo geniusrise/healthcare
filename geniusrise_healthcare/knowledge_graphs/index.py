@@ -25,7 +25,7 @@ from org.apache.lucene.queryparser.classic import QueryParser
 import networkx as nx
 from fastapi import FastAPI, HTTPException
 from typing import Dict, List, Any, Optional
-from base import load_graph as load
+from .base import load_graph as load
 import tempfile
 
 

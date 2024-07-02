@@ -18,7 +18,7 @@ import networkx as nx
 from typing import List, Dict, Set, Union
 from collections import defaultdict
 import logging
-from base import load_graph as load
+from .base import load_graph as load
 
 log = logging.getLogger(__name__)
 
