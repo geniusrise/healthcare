@@ -25,20 +25,25 @@ from org.apache.lucene.index import DirectoryReader
 
 import networkx as nx
 from fastapi import FastAPI, HTTPException
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from base import load_graph as load
+import tempfile
 
 
 class IndexAPI:
-    def __init__(self, app, index_dir: str):
+    def __init__(self, app, graph_name: str, index_dir: Optional[str]):
         self.app = app
-        self.index_dir = index_dir
-        self.setup_routes()
+        self.index_dir = index_dir or tempfile.mkdtemp()
+
+        self.G = load(graph_name)
 
         # Initialize Lucene
         lucene.initVM(vmargs=["-Djava.awt.headless=true"])
         self.analyzer = StandardAnalyzer()
         self.index_dir = SimpleFSDirectory(Paths.get(index_dir))
+
+        self.index_graph(self.G)
+        self.setup_routes()
 
     def setup_routes(self):
         @self.app.post("/index_graph/{graph_name}")
