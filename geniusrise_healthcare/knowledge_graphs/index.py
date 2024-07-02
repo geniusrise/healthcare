@@ -17,11 +17,10 @@ import lucene
 from java.nio.file import Paths
 from org.apache.lucene.analysis.standard import StandardAnalyzer
 from org.apache.lucene.document import Document, Field, StringField, TextField
-from org.apache.lucene.index import IndexWriter, IndexWriterConfig
+from org.apache.lucene.index import IndexWriter, IndexWriterConfig, DirectoryReader
 from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.search import IndexSearcher
 from org.apache.lucene.queryparser.classic import QueryParser
-from org.apache.lucene.index import DirectoryReader
 
 import networkx as nx
 from fastapi import FastAPI, HTTPException
@@ -33,17 +32,28 @@ import tempfile
 class IndexAPI:
     def __init__(self, app, graph_name: str, index_dir: Optional[str]):
         self.app = app
-        self.index_dir = index_dir or tempfile.mkdtemp()
+        self.index_dir_path = index_dir or tempfile.mkdtemp()
 
         self.G = load(graph_name)
 
         # Initialize Lucene
         lucene.initVM(vmargs=["-Djava.awt.headless=true"])
         self.analyzer = StandardAnalyzer()
-        self.index_dir = SimpleFSDirectory(Paths.get(index_dir))
+        self.index_dir = SimpleFSDirectory(Paths.get(self.index_dir_path))
 
-        self.index_graph(self.G)
+        if not self.index_exists():
+            self.index_graph(self.G)
         self.setup_routes()
+
+    def index_exists(self) -> bool:
+        """Check if the index already exists and is not empty."""
+        try:
+            reader = DirectoryReader.open(self.index_dir)
+            exists = reader.numDocs() > 0
+            reader.close()
+            return exists
+        except Exception:
+            return False
 
     def setup_routes(self):
         @self.app.post("/index_graph/{graph_name}")
