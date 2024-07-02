@@ -13,62 +13,71 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from fastapi import FastAPI, HTTPException, Query
-import networkx as nx
-from sentence_transformers import SentenceTransformer
-import faiss
+import argparse
+import uvicorn
+from fastapi import FastAPI
 import logging
 
-from geniusrise_healthcare.knowledge_graphs.base import load_graph
-from geniusrise_healthcare.knowledge_graphs.network import NetworkxAPI
-from geniusrise_healthcare.knowledge_graphs.index import IndexAPI
-from geniusrise_healthcare.knowledge_graphs.vector import VectorAPI
-
-app = FastAPI()
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Load the graph
-graph_name = "umls"  # You can change this to the specific graph you want to load
-G = load_graph(graph_name)
-
-# Initialize the APIs
-networkx_api = NetworkxAPI(app, graph_name)
-index_api = IndexAPI(app, graph_name, index_dir="./lucene_indexes")
-vector_api = VectorAPI(app, graph_name, model_name="all-MiniLM-L6-v2", index_dir="./faiss_indexes")
+from geniusrise_healthcare.knowledge_graphs import NetworkxAPI, IndexAPI, VectorAPI, load_graph
 
 
-# Root endpoint
-@app.get("/")
-async def root():
-    return {"message": "Welcome to the Medical Knowledge Graph API"}
+def create_app(graph_name: str, lucene_index_dir: str, faiss_index_dir: str, vector_model_name: str) -> FastAPI:
+    app = FastAPI()
+
+    # Load the graph
+    G = load_graph(graph_name)
+
+    # Initialize the APIs
+    NetworkxAPI(app, G=G, graph_name=graph_name)
+    IndexAPI(app, G=G, graph_name=graph_name, index_dir=lucene_index_dir)
+    VectorAPI(app, G=G, graph_name=graph_name, model_name=vector_model_name, index_dir=faiss_index_dir)
+
+    @app.get("/")
+    async def root():
+        return {"message": "Welcome to the Medical Knowledge Graph API"}
+
+    @app.get("/health")
+    async def health_check():
+        return {"status": "healthy"}
+
+    @app.get("/graph_info")
+    async def graph_info():
+        return {"nodes": G.number_of_nodes(), "edges": G.number_of_edges(), "graph_name": graph_name}
+
+    return app
 
 
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+def main():
+    # fmt: off
+    parser = argparse.ArgumentParser(description="Start the FastAPI Knowledge Graph Server")
+    parser.add_argument("--graph", type=str, default="umls", help="Name of the graph to load")
+    parser.add_argument("--host", type=str, default="0.0.0.0", help="Host to run the server on")
+    parser.add_argument("--port", type=int, default=8000, help="Port to run the server on")
+    parser.add_argument("--lucene-index", type=str, default="./lucene_indexes", help="Directory for Lucene indexes")
+    parser.add_argument("--faiss-index", type=str, default="./faiss_indexes", help="Directory for FAISS indexes")
+    parser.add_argument("--vector-model", type=str, default="all-MiniLM-L6-v2", help="Name of the vector model to use")
+    parser.add_argument( "--log-level", type=str, default="info", choices=["debug", "info", "warning", "error", "critical"], help="Logging level")
+    # fmt: on
 
+    args = parser.parse_args()
 
-# Graph information endpoint
-@app.get("/graph_info")
-async def graph_info():
-    return {"nodes": G.number_of_nodes(), "edges": G.number_of_edges(), "graph_name": graph_name}
+    # Configure logging
+    numeric_level = getattr(logging, args.log_level.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError(f"Invalid log level: {args.log_level}")
+    logging.basicConfig(level=numeric_level)
 
+    # Create the FastAPI app
+    app = create_app(
+        graph_name=args.graph,
+        lucene_index_dir=args.lucene_index,
+        faiss_index_dir=args.faiss_index,
+        vector_model_name=args.vector_model,
+    )
 
-# Include the routes from the individual APIs
-# NetworkxAPI routes
-app.include_router(networkx_api.app.router)
+    # Run the server
+    uvicorn.run(app, host=args.host, port=args.port)
 
-# IndexAPI routes
-app.include_router(index_api.app.router)
-
-# VectorAPI routes
-app.include_router(vector_api.app.router)
 
 if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    main()

@@ -24,10 +24,17 @@ log = logging.getLogger(__name__)
 
 
 class NetworkxAPI:
-    def __init__(self, app, graph_name: str):
+    def __init__(
+        self,
+        app,
+        G: nx.DiGraph,
+        graph_name: str,
+    ):
         self.app = app
 
-        self.G = load(graph_name)
+        self.G = G
+        self.graph_name = graph_name
+
         self.pagerank: Dict[str, float] = nx.pagerank(self.G)
         self.centrality: Dict[str, float] = nx.centrality(self.G)
 

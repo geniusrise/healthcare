@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .base import load_graph
 from .network import NetworkxAPI
 from .index import IndexAPI
 from .vector import VectorAPI

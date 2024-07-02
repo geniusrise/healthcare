@@ -22,21 +22,25 @@ import faiss
 import os
 import pickle
 
-from .base import load_graph as load
-
 log = logging.getLogger(__name__)
 
 
 class VectorAPI:
     def __init__(
-        self, app: FastAPI, graph_name: str, model_name: str = "all-MiniLM-L6-v2", index_dir: str = "./faiss_indexes"
+        self,
+        app: FastAPI,
+        G: nx.DiGraph,
+        graph_name: str,
+        model_name: str = "all-MiniLM-L6-v2",
+        index_dir: str = "./faiss_indexes",
     ):
         self.app = app
-        self.graph_name = graph_name
         self.index_dir = index_dir
         self.model = SentenceTransformer(model_name)
 
-        self.G = load(graph_name)
+        self.G = G
+        self.graph_name = graph_name
+
         self.index, self.reverse_map = self.load_or_create_faiss_index()
 
         self.setup_routes()

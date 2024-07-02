@@ -30,11 +30,18 @@ import tempfile
 
 
 class IndexAPI:
-    def __init__(self, app, graph_name: str, index_dir: Optional[str]):
+    def __init__(
+        self,
+        app,
+        G: nx.DiGraph,
+        graph_name: str,
+        index_dir: Optional[str],
+    ):
         self.app = app
         self.index_dir_path = index_dir or tempfile.mkdtemp()
 
-        self.G = load(graph_name)
+        self.G = G
+        self.graph_name = graph_name
 
         # Initialize Lucene
         lucene.initVM(vmargs=["-Djava.awt.headless=true"])
