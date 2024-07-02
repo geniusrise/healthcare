@@ -56,15 +56,6 @@ class IndexAPI:
             return False
 
     def setup_routes(self):
-        @self.app.post("/index_graph/{graph_name}")
-        async def index_graph(graph_name: str):
-            try:
-                G = load(graph_name)  # Assume this function exists to load the graph
-                self.index_graph(G)
-                return {"message": f"Graph {graph_name} indexed successfully"}
-            except Exception as e:
-                raise HTTPException(status_code=400, detail=str(e))
-
         @self.app.get("/search")
         async def search(query: str, limit: int = 10):
             try:
