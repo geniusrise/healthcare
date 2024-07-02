@@ -16,7 +16,6 @@
 from fastapi import FastAPI, HTTPException, Query
 import networkx as nx
 from typing import List, Dict, Set, Union
-import asyncio
 from collections import defaultdict
 import logging
 from base import load_graph as load
@@ -25,169 +24,14 @@ log = logging.getLogger(__name__)
 
 
 class NetworkxAPI:
-    def __init__(self, app):
+    def __init__(self, app, graph_name: str):
         self.app = app
-        self.graphs: Dict[str, nx.DiGraph] = {}
-        self.pageranks: Dict[str, Dict[str, float]] = {}
-        self.centralities: Dict[str, Dict[str, float]] = {}
+
+        self.G = load(graph_name)
+        self.pagerank: Dict[str, float] = nx.pagerank(self.G)
+        self.centrality: Dict[str, float] = nx.centrality(self.G)
+
         self.setup_routes()
-
-    def setup_routes(self):
-        @self.app.post("/load_graph/{graph_name}")
-        async def load_graph(graph_name: str, compute_metrics: bool = False):
-            try:
-                self.graphs[graph_name] = await asyncio.to_thread(load, graph_name)
-                if compute_metrics:
-                    await self.precompute_metrics(graph_name)
-                return {"message": f"Graph {graph_name} loaded successfully"}
-            except Exception as e:
-                raise HTTPException(status_code=400, detail=str(e))
-
-        @self.app.get("/search/{graph_name}")
-        async def search_nodes(graph_name: str, query: str, limit: int = 10):
-            graph = self.get_graph(graph_name)
-            results = []
-            for node, data in graph.nodes(data=True):
-                if query.lower() in str(data).lower():
-                    results.append({"id": node, "data": data})
-                    if len(results) >= limit:
-                        break
-            return results
-
-        @self.app.get("/traverse/{graph_name}/{node_id}")
-        async def traverse_graph(graph_name: str, node_id: str, depth: int = 2):
-            graph = self.get_graph(graph_name)
-            if node_id not in graph:
-                raise HTTPException(status_code=404, detail="Node not found")
-
-            result = {node_id: {"data": dict(graph.nodes[node_id]), "neighbors": {}}}
-            queue = [(node_id, result[node_id]["neighbors"], 0)]
-
-            while queue:
-                current_node, current_dict, current_depth = queue.pop(0)
-                if current_depth >= depth:
-                    continue
-                for neighbor in graph.neighbors(current_node):
-                    current_dict[neighbor] = {"data": dict(graph.nodes[neighbor]), "neighbors": {}}
-                    queue.append((neighbor, current_dict[neighbor]["neighbors"], current_depth + 1))
-
-            return result
-
-        @self.app.get("/diffusion/{graph_name}/{node_id}")
-        async def diffusion(graph_name: str, node_id: str, steps: int = 3):
-            graph = self.get_graph(graph_name)
-            if node_id not in graph:
-                raise HTTPException(status_code=404, detail="Node not found")
-
-            diffusion = defaultdict(float)
-            diffusion[node_id] = 1.0
-
-            for _ in range(steps):
-                new_diffusion: defaultdict[str, float] = defaultdict(float)
-                for node, value in diffusion.items():
-                    neighbors = list(graph.neighbors(node))
-                    if neighbors:
-                        flow = value / len(neighbors)
-                        for neighbor in neighbors:
-                            new_diffusion[neighbor] += flow
-                diffusion = new_diffusion
-
-            return dict(diffusion)
-
-        @self.app.get("/ranked_search/{graph_name}")
-        async def ranked_search(graph_name: str, query: str, limit: int = 10):
-            graph = self.get_graph(graph_name)
-            pagerank = self.get_pagerank(graph_name)
-
-            results = []
-            for node, data in graph.nodes(data=True):
-                if query.lower() in str(data).lower():
-                    results.append({"id": node, "data": data, "rank": pagerank.get(node, 0)})
-
-            results.sort(key=lambda x: x["rank"], reverse=True)
-            return results[:limit]
-
-        @self.app.get("/important_neighbors/{graph_name}/{node_id}")
-        async def important_neighbors(graph_name: str, node_id: str, limit: int = 5):
-            graph = self.get_graph(graph_name)
-            centrality = self.get_centrality(graph_name)
-
-            if node_id not in graph:
-                raise HTTPException(status_code=404, detail="Node not found")
-
-            neighbors = list(graph.neighbors(node_id))
-            ranked_neighbors = sorted(neighbors, key=lambda n: centrality.get(n, 0), reverse=True)
-
-            return [
-                {"id": n, "data": dict(graph.nodes[n]), "centrality": centrality.get(n, 0)}
-                for n in ranked_neighbors[:limit]
-            ]
-
-        @self.app.get("/local_important_nodes/{graph_name}/{node_id}")
-        async def local_important_nodes(graph_name: str, node_id: str, n: int = 1):
-            graph = self.get_graph(graph_name)
-            important_nodes = self.find_local_important_nodes(graph, node_id, n)
-            return [{"id": node, "data": dict(graph.nodes[node])} for node in important_nodes]
-
-        @self.app.get("/recursive_search/{graph_name}/{node_id}")
-        async def recursive_search_api(
-            graph_name: str,
-            node_id: str,
-            semantic_types: List[str] = Query(None),
-            stop_at_semantic_types: List[str] = Query(None),
-            max_depth: int = 3,
-        ):
-            graph = self.get_graph(graph_name)
-            top_one_percent_nodes = self.calculate_top_one_percent_nodes(graph)
-            result_paths = self.recursive_search(
-                graph, node_id, semantic_types, stop_at_semantic_types, set(), 0, max_depth, [], top_one_percent_nodes
-            )
-            return result_paths
-
-        @self.app.get("/node_centrality/{graph_name}/{node_id}")
-        async def node_centrality(graph_name: str, node_id: str):
-            graph = self.get_graph(graph_name)
-            centrality = self.get_centrality(graph_name)
-            if node_id not in graph:
-                raise HTTPException(status_code=404, detail="Node not found")
-            return {"id": node_id, "centrality": centrality.get(node_id, 0)}
-
-        @self.app.get("/shortest_path/{graph_name}")
-        async def shortest_path(graph_name: str, source: str, target: str):
-            graph = self.get_graph(graph_name)
-            try:
-                path = nx.shortest_path(graph, source, target)
-                return [{"id": node, "data": dict(graph.nodes[node])} for node in path]
-            except nx.NetworkXNoPath:
-                raise HTTPException(status_code=404, detail="No path found between the specified nodes")
-
-        @self.app.get("/common_neighbors/{graph_name}")
-        async def common_neighbors(graph_name: str, node1: str, node2: str):
-            graph = self.get_graph(graph_name)
-            if node1 not in graph or node2 not in graph:
-                raise HTTPException(status_code=404, detail="One or both nodes not found")
-            common = list(nx.common_neighbors(graph, node1, node2))
-            return [{"id": node, "data": dict(graph.nodes[node])} for node in common]
-
-    def get_graph(self, graph_name: str) -> nx.DiGraph:
-        if graph_name not in self.graphs:
-            raise HTTPException(status_code=404, detail=f"Graph {graph_name} not loaded")
-        return self.graphs[graph_name]
-
-    def get_pagerank(self, graph_name: str) -> Dict[str, float]:
-        if graph_name not in self.pageranks:
-            raise HTTPException(status_code=404, detail=f"PageRank not computed for {graph_name}")
-        return self.pageranks[graph_name]
-
-    def get_centrality(self, graph_name: str) -> Dict[str, float]:
-        if graph_name not in self.centralities:
-            raise HTTPException(status_code=404, detail=f"Centrality not computed for {graph_name}")
-        return self.centralities[graph_name]
-
-    async def precompute_metrics(self, graph_name: str):
-        graph = self.get_graph(graph_name)
-        self.pageranks[graph_name] = await asyncio.to_thread(nx.pagerank, graph)
-        self.centralities[graph_name] = await asyncio.to_thread(nx.betweenness_centrality, graph)
 
     def find_local_important_nodes(self, G: nx.DiGraph, node: str, n: int = 1) -> List[str]:
         subgraph = nx.ego_graph(G.to_undirected(), node, radius=n, undirected=True, center=True)
@@ -250,3 +94,117 @@ class NetworkxAPI:
 
         current_path.pop()
         return paths
+
+    def setup_routes(self):
+        @self.app.get("/search")
+        async def search_nodes(query: str, limit: int = 10):
+            results = []
+            for node, data in self.G.nodes(data=True):
+                if query.lower() in str(data).lower():
+                    results.append({"id": node, "data": data})
+                    if len(results) >= limit:
+                        break
+            return results
+
+        @self.app.get("/traverse/{node_id}")
+        async def traverse_graph(node_id: str, depth: int = 2):
+            if node_id not in self.G:
+                raise HTTPException(status_code=404, detail="Node not found")
+
+            result = {node_id: {"data": dict(self.G.nodes[node_id]), "neighbors": {}}}
+            queue = [(node_id, result[node_id]["neighbors"], 0)]
+
+            while queue:
+                current_node, current_dict, current_depth = queue.pop(0)
+                if current_depth >= depth:
+                    continue
+                for neighbor in self.G.neighbors(current_node):
+                    current_dict[neighbor] = {"data": dict(self.G.nodes[neighbor]), "neighbors": {}}
+                    queue.append((neighbor, current_dict[neighbor]["neighbors"], current_depth + 1))
+
+            return result
+
+        @self.app.get("/diffusion/{node_id}")
+        async def diffusion(node_id: str, steps: int = 3):
+            if node_id not in self.G:
+                raise HTTPException(status_code=404, detail="Node not found")
+
+            diffusion = defaultdict(float)
+            diffusion[node_id] = 1.0
+
+            for _ in range(steps):
+                new_diffusion: defaultdict[str, float] = defaultdict(float)
+                for node, value in diffusion.items():
+                    neighbors = list(self.G.neighbors(node))
+                    if neighbors:
+                        flow = value / len(neighbors)
+                        for neighbor in neighbors:
+                            new_diffusion[neighbor] += flow
+                diffusion = new_diffusion
+
+            return dict(diffusion)
+
+        @self.app.get("/ranked_search")
+        async def ranked_search(query: str, limit: int = 10):
+
+            results = []
+            for node, data in self.G.nodes(data=True):
+                if query.lower() in str(data).lower():
+                    results.append({"id": node, "data": data, "rank": self.pagerank.get(node, 0)})
+
+            results.sort(key=lambda x: x["rank"], reverse=True)
+            return results[:limit]
+
+        @self.app.get("/important_neighbors/{node_id}")
+        async def important_neighbors(node_id: str, limit: int = 5):
+
+            if node_id not in self.G:
+                raise HTTPException(status_code=404, detail="Node not found")
+
+            neighbors = list(self.G.neighbors(node_id))
+            ranked_neighbors = sorted(neighbors, key=lambda n: self.centrality.get(n, 0), reverse=True)
+
+            return [
+                {"id": n, "data": dict(self.G.nodes[n]), "centrality": self.centrality.get(n, 0)}
+                for n in ranked_neighbors[:limit]
+            ]
+
+        @self.app.get("/local_important_nodes/{node_id}")
+        async def local_important_nodes(node_id: str, n: int = 1):
+            important_nodes = self.find_local_important_nodes(self.G, node_id, n)
+            return [{"id": node, "data": dict(self.G.nodes[node])} for node in important_nodes]
+
+        @self.app.get("/recursive_search/{node_id}")
+        async def recursive_search_api(
+            graph_name: str,
+            node_id: str,
+            semantic_types: List[str] = Query(None),
+            stop_at_semantic_types: List[str] = Query(None),
+            max_depth: int = 3,
+        ):
+            top_one_percent_nodes = self.calculate_top_one_percent_nodes(self.G)
+            result_paths = self.recursive_search(
+                self.G, node_id, semantic_types, stop_at_semantic_types, set(), 0, max_depth, [], top_one_percent_nodes
+            )
+            return result_paths
+
+        @self.app.get("/node_centrality/{node_id}")
+        async def node_centrality(node_id: str):
+            if node_id not in self.G:
+                raise HTTPException(status_code=404, detail="Node not found")
+            return {"id": node_id, "centrality": self.centrality.get(node_id, 0)}
+
+        @self.app.get("/shortest_path")
+        async def shortest_path(source: str, target: str):
+            try:
+                path = nx.shortest_path(self.G, source, target)
+                return [{"id": node, "data": dict(self.G.nodes[node])} for node in path]
+            except nx.NetworkXNoPath:
+                raise HTTPException(status_code=404, detail="No path found between the specified nodes")
+
+        @self.app.get("/common_neighbors")
+        async def common_neighbors(node1: str, node2: str):
+            if node1 not in self.G or node2 not in self.G:
+                raise HTTPException(status_code=404, detail="One or both nodes not found")
+            common = list(nx.common_neighbors(self.G, node1, node2))
+            return [{"id": node, "data": dict(self.G.nodes[node])} for node in common]
