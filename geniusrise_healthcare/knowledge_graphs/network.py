@@ -103,7 +103,7 @@ class NetworkxAPI:
         return paths
 
     def setup_routes(self):
-        @self.app.get("/search")
+        @self.app.get("/graph/search")
         async def search_nodes(query: str, limit: int = 10):
             results = []
             for node, data in self.G.nodes(data=True):
@@ -113,7 +113,7 @@ class NetworkxAPI:
                         break
             return results
 
-        @self.app.get("/traverse/{node_id}")
+        @self.app.get("/graph/traverse/{node_id}")
         async def traverse_graph(node_id: str, depth: int = 2):
             if node_id not in self.G:
                 raise HTTPException(status_code=404, detail="Node not found")
@@ -131,7 +131,7 @@ class NetworkxAPI:
 
             return result
 
-        @self.app.get("/diffusion/{node_id}")
+        @self.app.get("/graph/diffusion/{node_id}")
         async def diffusion(node_id: str, steps: int = 3):
             if node_id not in self.G:
                 raise HTTPException(status_code=404, detail="Node not found")
@@ -151,7 +151,7 @@ class NetworkxAPI:
 
             return dict(diffusion)
 
-        @self.app.get("/ranked_search")
+        @self.app.get("/graph/ranked_search")
         async def ranked_search(query: str, limit: int = 10):
 
             results = []
@@ -162,7 +162,7 @@ class NetworkxAPI:
             results.sort(key=lambda x: x["rank"], reverse=True)
             return results[:limit]
 
-        @self.app.get("/important_neighbors/{node_id}")
+        @self.app.get("/graph/important_neighbors/{node_id}")
         async def important_neighbors(node_id: str, limit: int = 5):
 
             if node_id not in self.G:
@@ -176,12 +176,12 @@ class NetworkxAPI:
                 for n in ranked_neighbors[:limit]
             ]
 
-        @self.app.get("/local_important_nodes/{node_id}")
+        @self.app.get("/graph/local_important_nodes/{node_id}")
         async def local_important_nodes(node_id: str, n: int = 1):
             important_nodes = self.find_local_important_nodes(self.G, node_id, n)
             return [{"id": node, "data": dict(self.G.nodes[node])} for node in important_nodes]
 
-        @self.app.get("/recursive_search/{node_id}")
+        @self.app.get("/graph/recursive_search/{node_id}")
         async def recursive_search_api(
             graph_name: str,
             node_id: str,
@@ -195,13 +195,13 @@ class NetworkxAPI:
             )
             return result_paths
 
-        @self.app.get("/node_centrality/{node_id}")
+        @self.app.get("/graph/node_centrality/{node_id}")
         async def node_centrality(node_id: str):
             if node_id not in self.G:
                 raise HTTPException(status_code=404, detail="Node not found")
             return {"id": node_id, "centrality": self.centrality.get(node_id, 0)}
 
-        @self.app.get("/shortest_path")
+        @self.app.get("/graph/shortest_path")
         async def shortest_path(source: str, target: str):
             try:
                 path = nx.shortest_path(self.G, source, target)
@@ -209,7 +209,7 @@ class NetworkxAPI:
             except nx.NetworkXNoPath:
                 raise HTTPException(status_code=404, detail="No path found between the specified nodes")
 
-        @self.app.get("/common_neighbors")
+        @self.app.get("/graph/common_neighbors")
         async def common_neighbors(node1: str, node2: str):
             if node1 not in self.G or node2 not in self.G:
                 raise HTTPException(status_code=404, detail="One or both nodes not found")

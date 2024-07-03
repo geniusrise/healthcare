@@ -85,7 +85,7 @@ class VectorAPI:
         return index, reverse_map
 
     def setup_routes(self):
-        @self.app.get("/semantic_search")
+        @self.app.get("/vector/semantic_search")
         async def semantic_search(query: str, k: int = 10):
             query_embedding = self.model.encode([query])[0]
             D, I = self.index.search(query_embedding.reshape(1, -1), k)
@@ -108,7 +108,7 @@ class VectorAPI:
                 )
             return results
 
-        @self.app.get("/semantic_relation_search")
+        @self.app.get("/vector/semantic_relation_search")
         async def semantic_relation_search(source_query: str, relation_query: str, target_query: str, k: int = 10):
             source_embedding = self.model.encode([source_query])[0]
             relation_embedding = self.model.encode([relation_query])[0]

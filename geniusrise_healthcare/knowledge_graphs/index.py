@@ -63,7 +63,7 @@ class IndexAPI:
             return False
 
     def setup_routes(self):
-        @self.app.get("/search")
+        @self.app.get("/index/search")
         async def search(query: str, limit: int = 10):
             try:
                 results = self.search(query, limit)
@@ -71,7 +71,7 @@ class IndexAPI:
             except Exception as e:
                 raise HTTPException(status_code=400, detail=str(e))
 
-        @self.app.get("/get_node/{node_id}")
+        @self.app.get("/index/get_node/{node_id}")
         async def get_node(node_id: str):
             try:
                 node = self.get_node(node_id)
@@ -79,7 +79,7 @@ class IndexAPI:
             except Exception as e:
                 raise HTTPException(status_code=404, detail=str(e))
 
-        @self.app.get("/get_relation/{relation_id}")
+        @self.app.get("/index/get_relation/{relation_id}")
         async def get_relation(relation_id: str):
             try:
                 relation = self.get_relation(relation_id)
