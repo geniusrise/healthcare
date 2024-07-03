@@ -40,8 +40,17 @@ def process_concepts_file(concepts_file: str, G: nx.DiGraph, cui_to_concept: Dic
     for row in tqdm(rows):
         try:
             cui, language, term, source, sab, tty = row[0], row[1], row[14], row[11], row[4], row[12]
-            G.add_node(cui, term=term, language=language, source=source, sab=sab, tty=tty)
-            cui_to_concept[cui] = {"term": term, "language": language, "source": source, "sab": sab, "tty": tty}
+            if cui not in G:
+                G.add_node(cui, type="concept")
+            G.nodes[cui].update(
+                {
+                    "terms": G.nodes[cui].get("terms", []) + [term],
+                    "languages": G.nodes[cui].get("languages", set()) | {language},
+                    "sources": G.nodes[cui].get("sources", set()) | {source},
+                    "source_abbreviations": G.nodes[cui].get("source_abbreviations", set()) | {sab},
+                    "term_types": G.nodes[cui].get("term_types", set()) | {tty},
+                }
+            )
         except Exception as e:
             log.error(f"Error processing concept {row}: {e}")
             raise ValueError(f"Error processing concept {row}: {e}")

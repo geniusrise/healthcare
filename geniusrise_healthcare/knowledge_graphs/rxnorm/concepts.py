@@ -38,17 +38,64 @@ def process_concepts_file(concepts_file: str, G: nx.DiGraph) -> None:
     rows = read_rrf_file(concepts_file)
     for row in tqdm(rows):
         try:
-            rxcui, rxaui, tty, sab, code, language, term, source = (
-                row[0],
-                row[7],
-                row[12],
-                row[4],
-                row[13],
-                row[1],
-                row[14],
-                row[11],
-            )
-            G.add_node(rxcui, rxaui=rxaui, term=term, language=language, code=code, sab=sab, tty=tty)
+            (
+                rxcui,
+                lat,
+                ts,
+                lui,
+                stt,
+                sui,
+                ispref,
+                rxaui,
+                saui,
+                scui,
+                sdui,
+                sab,
+                tty,
+                code,
+                str,
+                srl,
+                suppress,
+                cvf,
+            ) = row
+
+            if rxcui not in G:
+                G.add_node(rxcui, type="rxnorm_concept")
+
+            concept_data = {
+                "rxcui": rxcui,
+                "lat": lat,
+                "ts": ts,
+                "lui": lui,
+                "stt": stt,
+                "sui": sui,
+                "ispref": ispref,
+                "rxaui": rxaui,
+                "saui": saui,
+                "scui": scui,
+                "sdui": sdui,
+                "sab": sab,
+                "tty": tty,
+                "code": code,
+                "str": str,
+                "srl": srl,
+                "suppress": suppress,
+                "cvf": cvf,
+            }
+
+            if "atoms" not in G.nodes[rxcui]:
+                G.nodes[rxcui]["atoms"] = []
+            G.nodes[rxcui]["atoms"].append(concept_data)
+
+            # Standardized fields
+            G.nodes[rxcui]["terms"] = G.nodes[rxcui].get("terms", []) + [str]
+            G.nodes[rxcui]["languages"] = G.nodes[rxcui].get("languages", set()) | {lat}
+            G.nodes[rxcui]["sources"] = G.nodes[rxcui].get("sources", set()) | {sab}
+            G.nodes[rxcui]["term_types"] = G.nodes[rxcui].get("term_types", set()) | {tty}
+            G.nodes[rxcui]["codes"] = G.nodes[rxcui].get("codes", set()) | {code}
+            if scui:
+                G.nodes[rxcui]["umls_cui"] = scui
+
         except Exception as e:
             log.error(f"Error processing concept {row}: {e}")
             raise ValueError(f"Error processing concept {row}: {e}")

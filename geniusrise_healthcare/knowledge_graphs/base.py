@@ -13,12 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# base.py
 import logging
 import networkx as nx
 
 from disease_ontology.base import load_disease_ontology
-from drugbank.base import load_drugbank
 from gene_ontology.base import load_gene_ontology
 from mesh.base import load_mesh
 from rxnorm.base import load_rxnorm
@@ -29,18 +27,27 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-def load():
-    nx.DiGraph()
+def load_graph(name: str) -> nx.DiGraph:
+    """
+    Load a knowledge graph with networkx.
 
-    # for graph in graphs:
+    Returns:
+        Dict[str, nx.DiGraph]: A dictionary of the loaded graphs.
+    """
+    if name == "umls":
+        return load_umls(nx.DiGraph(), "../../data/umls/2024AA/META")
 
-    # load_umls(G, "./data/umls/2024AA/META")
-    # load_snomed(G, "./data/snomed/snomed/Snapshot/Terminology", version="INT_20240501")
-    # load_rxnorm(G, "data/rxnorm/rrf")
-    # load_mesh(G, "./data/mesh")
-    # load_gene_ontology(G, "data/gene_ontology/go.owl")
-    # load_disease_ontology(G, "data/disease_ontology/HumanDiseaseOntology/src/ontology/releases/doid-merged.owl")
-
-
-if __name__ == "__main__":
-    load()
+    if name == "snomed":
+        return load_snomed(nx.DiGraph(), "../../data/snomed/snomed/Snapshot/Terminology", version="INT_20240501")
+    elif name == "rxnorm":
+        return load_rxnorm(nx.DiGraph(), "../../data/rxnorm/rrf")
+    elif name == "mesh":
+        return load_mesh(nx.DiGraph(), "../../data/mesh")
+    elif name == "gene_ontology":
+        return load_gene_ontology(nx.DiGraph(), "../../data/gene_ontology/go.owl")
+    elif name == "disease_ontology":
+        return load_disease_ontology(
+            nx.DiGraph(), "../../data/disease_ontology/HumanDiseaseOntology/src/ontology/releases/doid-merged.owl"
+        )
+    else:
+        raise ValueError("Requested unrecognized graph")

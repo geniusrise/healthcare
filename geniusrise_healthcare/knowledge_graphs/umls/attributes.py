@@ -37,11 +37,11 @@ def process_attributes_file(attributes_file: str, G: nx.DiGraph) -> None:
     rows = read_rrf_file(attributes_file)
     for row in tqdm(rows):
         try:
-            cui, atn, atv = row[0], row[4], row[5]
+            cui, atn, atv, sab = row[0], row[4], row[5], row[10]
             if cui in G:
-                if "attributes" not in G.nodes[cui]:
-                    G.nodes[cui]["attributes"] = {}
-                G.nodes[cui]["attributes"][atn] = atv
+                G.nodes[cui]["attributes"] = G.nodes[cui].get("attributes", []) + [
+                    {"name": atn, "value": atv, "source": sab}
+                ]
         except Exception as e:
             log.error(f"Error processing attribute {row}: {e}")
             raise ValueError(f"Error processing attribute {row}: {e}")

@@ -33,25 +33,33 @@ def process_semantic_network_files(srdef_file: str, srstr_file: str, G: nx.DiGra
     Returns:
         None
     """
-    log.info(f"Loading semantic type definitions from {srdef_file}")
+    log.info(f"Loading semantic network information from {srdef_file} and {srstr_file}")
 
+    # Process SRDEF file
     rows = read_rrf_file(srdef_file)
     for row in tqdm(rows):
         try:
-            tui, name, description = row[0], row[1], row[2]
-            G.add_node(tui, name=name, description=description)
+            ui, name, description = row[0], row[2], row[6]
+            if ui.startswith("T"):  # It's a Semantic Type
+                for node, data in G.nodes(data=True):
+                    if "semantic_types" in data:
+                        for st in data["semantic_types"]:
+                            if st["tui"] == ui:
+                                st.update({"name": name, "description": description})
+            elif ui.startswith("R"):  # It's a Relation
+                G.graph["relations"] = G.graph.get("relations", {})
+                G.graph["relations"][ui] = {"name": name, "description": description}
         except Exception as e:
-            log.error(f"Error processing semantic type definition {row}: {e}")
-            raise ValueError(f"Error processing semantic type definition {row}: {e}")
+            log.error(f"Error processing semantic network definition {row}: {e}")
+            raise ValueError(f"Error processing semantic network definition {row}: {e}")
 
-    log.info(f"Loading semantic relationships from {srstr_file}")
-
+    # Process SRSTR file
     rows = read_rrf_file(srstr_file)
     for row in tqdm(rows):
         try:
-            tui1, rel, tui2 = row[0], row[1], row[2]
-            if tui1 in G and tui2 in G:
-                G.add_edge(tui1, tui2, rel=rel)
+            ui1, rel, ui2 = row[0], row[1], row[2]
+            G.graph["semantic_network"] = G.graph.get("semantic_network", [])
+            G.graph["semantic_network"].append({"source": ui1, "relation": rel, "target": ui2})
         except Exception as e:
-            log.error(f"Error processing semantic relationship {row}: {e}")
-            raise ValueError(f"Error processing semantic relationship {row}: {e}")
+            log.error(f"Error processing semantic network relationship {row}: {e}")
+            raise ValueError(f"Error processing semantic network relationship {row}: {e}")

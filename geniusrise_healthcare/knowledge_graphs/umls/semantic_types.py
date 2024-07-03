@@ -37,11 +37,11 @@ def process_semantic_types_file(semantic_types_file: str, G: nx.DiGraph) -> None
     rows = read_rrf_file(semantic_types_file)
     for row in tqdm(rows):
         try:
-            cui, tui = row[0], row[1]
+            cui, tui, stn, sty = row[0], row[1], row[2], row[3]
             if cui in G:
-                if "semantic_types" not in G.nodes[cui]:
-                    G.nodes[cui]["semantic_types"] = []
-                G.nodes[cui]["semantic_types"].append(tui)
+                G.nodes[cui]["semantic_types"] = G.nodes[cui].get("semantic_types", []) + [
+                    {"tui": tui, "semantic_type_name": stn, "semantic_type": sty}
+                ]
         except Exception as e:
             log.error(f"Error processing semantic type {row}: {e}")
             raise ValueError(f"Error processing semantic type {row}: {e}")

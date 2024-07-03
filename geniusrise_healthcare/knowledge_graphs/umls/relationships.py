@@ -39,7 +39,7 @@ def process_relationships_file(relationships_file: str, G: nx.DiGraph) -> None:
         try:
             cui1, rel, cui2, rela, sab = row[0], row[3], row[4], row[7], row[10]
             if cui1 in G and cui2 in G:
-                G.add_edge(cui1, cui2, rel=rel, rela=rela, sab=sab)
+                G.add_edge(cui1, cui2, type="relationship", relation=rel, specific_relation=rela, source=sab)
         except Exception as e:
             log.error(f"Error processing relationship {row}: {e}")
             raise ValueError(f"Error processing relationship {row}: {e}")
